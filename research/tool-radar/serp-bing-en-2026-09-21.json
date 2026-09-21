@@ -1,0 +1,318 @@
+{
+ "_meta": {
+  "collected_at": "2026-09-21",
+  "engine": "bing.com/search",
+  "note": "ONLY FOUR ENGLISH QUERIES ARE RETAINED, and two more were dropped after inspection because their results were unrelated to the query ('colorize black and white photo' returned Microsoft account pages). In the same run Bing resolved every non-ASCII query from its first character only (e.g. '老照片修复' came back as dictionary entries for 老; 'pas foto online latar merah' came back as Microsoft support pages), and on a re-run minutes later it returned unrelated results for ASCII queries too. All non-English and unrelated output was discarded rather than published.",
+  "caveat": "Bing index, not Google; a competition proxy only"
+ },
+ "queries": [
+  {
+   "query": "upscale image",
+   "lang": "en",
+   "top": [
+    {
+     "title": "AI Image Upscaler - Upscale Images Online | ImgUpscaler",
+     "url": "https://imgupscaler.com/",
+     "host": "imgupscaler.com",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Free AI Image Upscaling Tool - Increase resolution of your images",
+     "url": "https://www.iloveimg.com/upscale-image",
+     "host": "iloveimg.com",
+     "path": "/upscale-image",
+     "homepage": false
+    },
+    {
+     "title": "AI Image Upscaler - Enlarge &amp; Enhance Your Photos for Free - Upscale…",
+     "url": "https://www.upscale.media/",
+     "host": "upscale.media",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Free AI Image Upscaler | Enhance Photo Quality to 4k &amp; 16K",
+     "url": "https://www.pixelcut.ai/image-upscaler",
+     "host": "pixelcut.ai",
+     "path": "/image-upscaler",
+     "homepage": false
+    },
+    {
+     "title": "Free Image Upscaler - AI Photo Upscale | Picsart",
+     "url": "https://picsart.com/image-upscale/",
+     "host": "picsart.com",
+     "path": "/image-upscale/",
+     "homepage": false
+    },
+    {
+     "title": "AI Image Upscaler Online Free | Upscale Images to 16K",
+     "url": "https://imgupscaler.ai/",
+     "host": "imgupscaler.ai",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Free AI Image Upscaler — Upscale Photos 2x &amp; 4x | PixConvert.com",
+     "url": "https://www.pixconvert.com/ai-image-upscaler",
+     "host": "pixconvert.com",
+     "path": "/ai-image-upscaler",
+     "homepage": false
+    },
+    {
+     "title": "Free AI Photo Enhancer – Enhance Image Quality Online",
+     "url": "https://imgupscaler.ai/photo-enhancer/",
+     "host": "imgupscaler.ai",
+     "path": "/photo-enhancer/",
+     "homepage": false
+    },
+    {
+     "title": "Upscale image: 100% for free with AI - cloudinary.com",
+     "url": "https://cloudinary.com/tools/image-upscale",
+     "host": "cloudinary.com",
+     "path": "/tools/image-upscale",
+     "homepage": false
+    },
+    {
+     "title": "Image Upscaler - Upscale Image Online for Free with AI",
+     "url": "https://www.img2go.com/upscale-image",
+     "host": "img2go.com",
+     "path": "/upscale-image",
+     "homepage": false
+    }
+   ],
+   "error": null
+  },
+  {
+   "query": "remove background",
+   "lang": "en",
+   "top": [
+    {
+     "title": "Remove Background from Image for Free – remove.bg",
+     "url": "https://www.remove.bg/",
+     "host": "remove.bg",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Instant Background Remover - Remove Bg for Free Online",
+     "url": "https://www.photoroom.com/tools/background-remover",
+     "host": "photoroom.com",
+     "path": "/tools/background-remover",
+     "homepage": false
+    },
+    {
+     "title": "Image background remover - iLoveIMG",
+     "url": "https://www.iloveimg.com/remove-background",
+     "host": "iloveimg.com",
+     "path": "/remove-background",
+     "homepage": false
+    },
+    {
+     "title": "Free Background Remover: Remove BG from Image Online",
+     "url": "https://www.pixelcut.ai/background-remover",
+     "host": "pixelcut.ai",
+     "path": "/background-remover",
+     "homepage": false
+    },
+    {
+     "title": "Free Background Remover - Remove Image Backgrounds with AI",
+     "url": "https://picsart.com/background-remover/",
+     "host": "picsart.com",
+     "path": "/background-remover/",
+     "homepage": false
+    },
+    {
+     "title": "Background Remover: Remove an image background | Canva",
+     "url": "https://www.canva.com/features/background-remover/?msockid=0712ee2cf6c76a06276ff9f7f7836b33",
+     "host": "canva.com",
+     "path": "/features/background-remover/",
+     "homepage": false
+    },
+    {
+     "title": "Free Image Background Remover | Adobe Firefly",
+     "url": "https://www.adobe.com/products/firefly/features/remove-background.html?msockid=0712ee2cf6c76a06276ff9f7f7836b33",
+     "host": "adobe.com",
+     "path": "/products/firefly/features/remove-background.html",
+     "homepage": false
+    },
+    {
+     "title": "Image background remover | Remove Background",
+     "url": "https://remove-background.com/",
+     "host": "remove-background.com",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Remove Background — Free HD Background Remover, No Sign-Up",
+     "url": "https://removebackgrounds.ai/",
+     "host": "removebackgrounds.ai",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Remove Background Online in 3 Seconds | RemoveBackground",
+     "url": "https://removebackground.now/en",
+     "host": "removebackground.now",
+     "path": "/en",
+     "homepage": false
+    }
+   ],
+   "error": null
+  },
+  {
+   "query": "passport photo online",
+   "lang": "en",
+   "top": [
+    {
+     "title": "FREE Passport Photos Online &#187; Download or Print online",
+     "url": "https://makepassportphoto.com/",
+     "host": "makepassportphoto.com",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Online Passport Photos $6.99 | PassportPhotoFactory",
+     "url": "https://www.passportphotofactory.com/",
+     "host": "passportphotofactory.com",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Free Passport Photo Maker &amp; Editor Online | PassportPhotoHub",
+     "url": "https://www.passportphotohub.com/en/",
+     "host": "passportphotohub.com",
+     "path": "/en/",
+     "homepage": false
+    },
+    {
+     "title": "Passport Photo Online - Passport and Visa photos online",
+     "url": "https://passport-photo.online/",
+     "host": "passport-photo.online",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Create your own passport photo for free - IDPhoto4You",
+     "url": "https://www.idphoto4you.com/",
+     "host": "idphoto4you.com",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Get Your Passport Photo Online Fast With PassportPhotos.com",
+     "url": "https://www.passportphotos.com/",
+     "host": "passportphotos.com",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Passport Appointments, Renewals, &amp; Photo Services | USPS",
+     "url": "https://www.usps.com/international/passports.htm?msockid=30622f75db2d606e2c4438aedad46155",
+     "host": "usps.com",
+     "path": "/international/passports.htm",
+     "homepage": false
+    },
+    {
+     "title": "PhotoBooth Online: Get Compliant Passport Photos Online",
+     "url": "https://photobooth.online/en-us/us-passport-photo",
+     "host": "photobooth.online",
+     "path": "/en-us/us-passport-photo",
+     "homepage": false
+    },
+    {
+     "title": "Free Online Passport Photo Editor | Crop, Resize &amp; Background",
+     "url": "https://passportfreephoto.com/online-passport-photo-editor/",
+     "host": "passportfreephoto.com",
+     "path": "/online-passport-photo-editor/",
+     "homepage": false
+    },
+    {
+     "title": "Free Passport Photo Maker — Crop, Resize &amp; Remove Background | Passport ...",
+     "url": "https://passportphotomake.com/",
+     "host": "passportphotomake.com",
+     "path": "/",
+     "homepage": true
+    }
+   ],
+   "error": null
+  },
+  {
+   "query": "ai headshot generator",
+   "lang": "en",
+   "top": [
+    {
+     "title": "Free AI Headshot Generator: Create AI Headshots | Canva",
+     "url": "https://www.canva.com/features/ai-headshot-generator/?msockid=1cb0b0e99b0964f70524a7329aec651d",
+     "host": "canva.com",
+     "path": "/features/ai-headshot-generator/",
+     "homepage": false
+    },
+    {
+     "title": "100% Free AI Headshot Generator | HeadshotPro",
+     "url": "https://www.headshotpro.com/tools/free-headshot-generator",
+     "host": "headshotpro.com",
+     "path": "/tools/free-headshot-generator",
+     "homepage": false
+    },
+    {
+     "title": "AI Headshot Generator – Free Online, No Sign-up &amp; No Ads",
+     "url": "https://visualgpt.io/ai-headshot-generator",
+     "host": "visualgpt.io",
+     "path": "/ai-headshot-generator",
+     "homepage": false
+    },
+    {
+     "title": "#1 AI Headshot Generator - 15 Minutes | Headshot.AI",
+     "url": "https://www.headshot.ai/",
+     "host": "headshot.ai",
+     "path": "/",
+     "homepage": true
+    },
+    {
+     "title": "Free AI Headshot Generator: Create Professional Headshots | Fotor",
+     "url": "https://www.fotor.com/features/ai-headshot-generator/",
+     "host": "fotor.com",
+     "path": "/features/ai-headshot-generator/",
+     "homepage": false
+    },
+    {
+     "title": "Free AI Headshot Generator: Create professional headshots - Adobe",
+     "url": "https://www.adobe.com/products/firefly/features/headshot-generator.html?msockid=1cb0b0e99b0964f70524a7329aec651d",
+     "host": "adobe.com",
+     "path": "/products/firefly/features/headshot-generator.html",
+     "homepage": false
+    },
+    {
+     "title": "Free AI Headshot Generator - 3/Day, No Sign Up | Magic Hour",
+     "url": "https://magichour.ai/products/ai-headshot-generator",
+     "host": "magichour.ai",
+     "path": "/products/ai-headshot-generator",
+     "homepage": false
+    },
+    {
+     "title": "AI Headshot Generator that Looks Like You | HeadshotPro",
+     "url": "https://www.headshotpro.com/ai-headshot-generator",
+     "host": "headshotpro.com",
+     "path": "/ai-headshot-generator",
+     "homepage": false
+    },
+    {
+     "title": "Free AI Headshot Generator: Studio Quality from Selfies",
+     "url": "https://www.aragon.ai/free-headshot-generator",
+     "host": "aragon.ai",
+     "path": "/free-headshot-generator",
+     "homepage": false
+    },
+    {
+     "title": "AI Headshot Generator: Pro Portraits | Higgsfield",
+     "url": "https://higgsfield.ai/apps/ai-headshot-generator",
+     "host": "higgsfield.ai",
+     "path": "/apps/ai-headshot-generator",
+     "homepage": false
+    }
+   ],
+   "error": null
+  }
+ ]
+}

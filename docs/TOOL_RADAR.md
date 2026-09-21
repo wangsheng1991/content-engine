@@ -11,13 +11,14 @@
 
 1. **名单有，但只有 3 个族是真正的"TikTok Downloader 级"普适需求**：`restore-old-photo`、`remove-background`、`passport-photo` —— 它们在全部 9 种语言的补全里都有 ≥5 条真实长尾。其余 9 个族只在部分语言成立（矩阵见 §2）。
 
-2. **普适 ≠ 能赚钱。**下载器类品类成立的三条里，最容易被忽略的是第四条：「用户手上的东西离钱只有一步」。下载器用户要的是白拿别人内容的副本，所以流量再大也换不成付费。AI 图像里符合这一条的反而是最不"性感"的品类 —— **证件照/护照照**：用户今天就在照相馆花钱拍，有截止日期，有硬性规格，AI 的能力刚好够。这是本报告的第一推荐。
+2. **普适 ≠ 能赚钱，也 ≠ 能拿到结果。**下载器类品类最容易漏掉的是第四条：「用户手上的东西离钱只有一步」——下载器用户要的是白拿别人的副本，流量再大也换不成付费。AI 图像里符合这一条的是最不"性感"的品类：**证件照/护照照**。用户今天就在照相馆花钱拍、有截止日期、有硬性规格。
+   而且这个判断不止来自需求侧：**§11 的前排实测显示 `passport photo online` 的前十全是单一用途小站、没有 Canva/Adobe/Google，俄语 "3 на 4" 的规格位上几乎全是小玩家，甚至有一家线下照相馆在同一页抢位置。**需求、竞争、付费意愿三条独立证据在证件照上收敛——**这是全名单里"拿到结果"概率最高的一个。**
 
 3. **一个必须马上接受的坏消息：这一整层需求正在被 Canva、Photoshop 和 Gemini 收编。**108 个（族 × 语言）组合里有 **40 个**的补全中直接点名了一个现有工具 —— `canva` 出现在 17 个（en/es/pt/id/vi/ja）、`photoshop` 16 个（en/es/pt/id/vi/zh）、`gemini` 12 个（es/pt/id/vi/ja/en）、`chatgpt` 7 个、`iphone` 9 个，另有 `word`/`パワポ`/`ペイント`/`小画家`/`ppt`（原文见 §5）。也就是说：**"免费改图"这个卖点正在被 Google 和 Canva 免费送掉**，照抄 Navos 的"免费工具 × 多语言 × 程序化变体"公式，在今天会遇到一个 2023 年不存在的对手。工具层不能赢在"免费"，只能赢在"**交付物**"—— 一个可以直接拿去用、能过审、能打印、能上传到平台的成品文件。Google 不会做"智利 RUT 规格的证件照"。
 
 4. **dlss5 今天就能服务的族**：增强/放大、去模糊、老照片修复、上色、证件照、职业照、海报、头像（`mode: 'edit'` 的 prompt 驱动编辑）。
-   **今天服务不了的**：真透明 PNG（无 alpha 通道、无抠图模型）、真 4K。`ENHANCE_MAX_EDGE = 1536`，且 `flux-klein` 是**重绘型**编辑模型，不是真正的逐像素超分（`src/config/enhance.ts` 的注释和 `docs/alphanet-superres-endpoint.md` 都写明了这一点）。
-   → 后果：`remove background` 是 9/9 的强需求族，但我们**不能**用现在的能力去接（除非补一个带 alpha 的模型）；而补全里排名很高的 `upscale image to 4k`，我们**不能**承诺（否则第一批用户立刻因"说好的 4K"而流失）。
+   今天的两个硬边界：无 alpha 通道（出不了透明 PNG）、`ENHANCE_MAX_EDGE = 1536`（出不了真 4K，且 `flux-klein` 是**重绘型**编辑模型，不是真正的逐像素超分——`src/config/enhance.ts` 的注释和 `docs/alphanet-superres-endpoint.md` 都写明了）。
+   **但这两个边界是采购问题，不是路线问题**：要买什么、按什么顺序买，见 §12。唯一不能妥协的是口径——在能力补齐之前，不要用 1536px 的引擎去承诺 4K。
 
 5. **`product-photo` 是文章不是工具。**它只有 4/9 语言有补全，而且长尾全是"**怎么拍**"（`como tirar foto de produto com fundo branco`、`cara foto produk background putih`、`cách chụp ảnh sản phẩm nền trắng`）—— 搜索者是摄影师/卖家本人，不是找编辑工具的人。这类词的价值是给工具页喂内链，不是做工具。
 
@@ -232,6 +233,144 @@ RenVi 的产品本身就做"上传房间照片→重新设计"，所以这些页
 
 ```bash
 python3 research/tool-radar/radar.py research/tool-radar/autocomplete-2026-09-21.json
+node research/tool-radar/serp-brave.mjs /tmp/serp-brave   # 需在 shared_env/playwright 下运行
 ```
 
 需要能访问 `suggestqueries.google.com`（本机直连，不走代理）。非拉丁文字的结果在终端可能显示为乱码，那是编码问题、不是数据问题，用 JSON 文件读即可。
+
+---
+
+## 11. 竞争实测：前排到底是谁（决定"能不能拿到结果"的那一半）
+
+§2 只证明了需求存在。**需求存在只是必要条件**——能不能拿到结果，取决于前排是谁。这一节是实测。
+
+### 方法与被丢弃的数据
+
+| 入口 | 结果 | 处置 |
+|---|---|---|
+| Bing 纯 HTTP，英文查询 | ✅ 4 个族的前 10 条完整、全部切题 | **采信**（`serp-bing-en-2026-09-21.json`） |
+| Bing 纯 HTTP，非英文查询 | ❌ 按 query 的**第一个字符**解析（`老照片修复` 返回"老"的词典页，`pas foto online latar merah` 返回微软帮助页） | 丢弃 |
+| Bing 纯 HTTP，重跑 | ❌ 连 ASCII 查询都开始返回无关结果（限流） | 丢弃 |
+| Google（真实 Chrome 会话） | ❌ `google.com/sorry` —— 本网络出口 IP 被判定为异常流量 | 丢弃 |
+| **Brave Search（真实 Chrome 会话）** | ✅ 4 个本地化查询完整切题，自有索引 | **采信**（`serp-brave-2026-09-21.json`） |
+
+诚实标注：Brave 的索引 ≠ Google 的索引；下面每个结论都标了它来自哪个引擎。**搜索量仍然未知。**
+
+### 英语 head term：前排是"小工具站"还是"巨头"
+
+```
+passport photo online
+  makepassportphoto.com · passportphotofactory.com · passportphotohub.com ·
+  passport-photo.online · idphoto4you.com · passportphotos.com · usps.com ·
+  photobooth.online · passportfreephoto.com · passportphotomake.com
+  → 10/10 都是单一用途的证件照站，6 个的首页本身就是工具，没有 Canva/Adobe/Google
+
+upscale image
+  imgupscaler.com · iloveimg.com · upscale.media · pixelcut.ai · picsart.com ·
+  imgupscaler.ai · pixconvert.com · cloudinary.com · img2go.com
+  → 全是小工具站（imgupscaler.com 和 imgupscaler.ai 两个域名都在榜，典型的矩阵站）；
+    没有品牌壁垒，但非常拥挤
+
+remove background
+  remove.bg · photoroom.com · iloveimg.com · pixelcut.ai · picsart.com ·
+  canva.com · adobe.com · remove-background.com · removebackgrounds.ai · removebackground.now
+  → 品类之王 remove.bg + Canva + Adobe 都在，但仍有三个无名站点挤进前十
+
+ai headshot generator
+  canva.com · headshotpro.com · visualgpt.io · headshot.ai · fotor.com ·
+  adobe.com · magichour.ai · headshotpro.com · aragon.ai · higgsfield.ai
+  → Canva + Adobe + 一批拿了钱的创业公司，最难
+```
+
+**四条结论：**
+1. **`passport photo online` 的前排没有巨头。**十个名额全被单一用途站点占满，而且有一半的"首页即工具"。这跟 `remove background`（品类之王 + 两个巨头）和 `ai headshot`（巨头 + 风投）完全是两种局面。
+2. **通用 head term 的前排不是 Google 也不是 Adobe**，而是一堆没有品牌的小工具站（`imgupscaler.com`、`pixconvert.com`、`img2go.com`）。**这说明壁垒是"页面执行"而不是"品牌或资本"**——只要真能把活干完，就有位置。
+3. **`ai headshot` 是最不该先做的**：既有 Canva/Adobe，又有一批融资公司。证据广度高（8/9）但拿不到结果。
+4. **`remove background` 的难度被高估、但前提是必须补能力**（见 §12）。
+
+### 本地化 SERP：赢家的 URL 结构本身就是答案
+
+Ru（Brave）：
+
+```
+фото на документы онлайн 3 на 4
+  app.idphoto.me
+  photo-visa.online/s/foto-na-3-na-4-onlayn                    ← 规格页
+  pokecut.com/ru/instrumenty/foto-3-na-4-onlajn-besplatno      ← 规格页
+  aipassportphotos.com/ru-ru/foto-3-na-4                       ← 规格页
+  progif.ru/photo-for-documents
+  passport-photo.online/ru-kz/foto-30x40-mm                    ← 规格页
+  convertilo.ru/images/passport-photo/
+  3x4photo.ru/spb/photo-studio-3x4                             ← 一家线下照相馆
+  cutout.pro/ru/passport-photo-maker
+  photodocs.ru
+
+увеличить разрешение фото онлайн бесплатно
+  pixelcut.ai/ru/image-upscaler · iloveimg.com/ru/upscale-image ·
+  fabula-ai.com/tools/enhance · watermarkly.com/ru/upscale-image/ ·
+  resizepixel.com/ru/resize-image/ · img2go.com/ru/upscale-image ·
+  picsart.com/ru/image-upscale/ · momentbook.ru/tools/upscale · airbrush.com/ru/image-enhancer
+```
+
+Id / Zh（Brave）：
+
+```
+pas foto online latar merah
+  image.pi7.org/id/latar-merah-pas-foto        ← 精确规格页
+  canva.com/id_id/fitur/background-merah/      ← 大厂已本地化
+  remove.bg/id/f/red-background                ← 品类之王已本地化
+  photoroom.com/zh/tools/background-remover/red-background
+  bikinpro.com/tools/pas-foto-maker · blog.rumahweb.com/... · capcut.com · youtube.com
+
+老照片修复
+  evoto.ai/zh-Hant/... · ai.nero.com/zh-cn/photo-restore · jpghd.com/zh ·
+  adobe.com/tw/products/firefly/features/ai-photo-restoration.html ·  ← Adobe 已本地化
+  picsart.com/zh/... · zhuanlan.zhihu.com/p/709098556 · photogrid.app/zh-cn/... · gaituya.com/...
+```
+
+**这是整份报告最重要的一张证据图。**它说明两件事：
+
+1. **在这些市场里赢的人，赢法就是"一个规格一个页 + 一种语言一个目录"**——`/foto-3-na-4`、`/latar-merah-pas-foto`、`/ru/upscale-image`。赢家自己的 URL 结构，把这个机制从假设变成了已验证的事实。我们要做的不是发明一个策略，而是**执行一个已被证明有效的策略**。
+2. **执行者几乎都是中小工具站，不是巨头**：`photo-visa.online`、`aipassportphotos.com`、`bikinpro.com`、`progif.ru`、`jpghd.com`、`gaituya.com`。但要注意 id/zh 两个市场里 `canva / remove.bg / photoroom / adobe` **已经建了本地化页面**，而 **ru 的"3 на 4"这个规格位上几乎全是小玩家**。
+
+**还有一条只有这份证据能给出的洞察**：`3x4photo.ru/spb/photo-studio-3x4` —— 一家圣彼得堡的**线下照相馆**排在这个查询的前十。线下付费服务在同一个 SERP 上跟工具站抢位置，**这是"用户正在花钱办这件事"的直接证据**，比任何推测都硬。同一条逻辑也解释了为什么 `passport photo online` 的前排全是"首页即工具"的站点：搜索者要的是**一个答案，不是一款软件**。
+
+### 因此，"较大概率拿到结果"的答案是
+
+**做 `规格 × 语言` 的证件照页面，从俄语的 3:4 开始 —— 而不是做英文的通用工具。**
+
+四条独立证据在这里收敛：
+
+| 证据 | 结论 |
+|---|---|
+| 补全（§2） | `passport-photo` 9/9 语言有稳定需求 |
+| 前排构成（本节） | 英语无巨头、ru 的规格位几乎全是小玩家 |
+| 线下照相馆在抢同一个 SERP | 用户此刻正在为这件事付钱 |
+| dlss5 自己的 GSC | 俄罗斯是第 2 大点击国家，且 ru 语言包已存在 |
+
+再加一条：**这个品类的护城河是"把活干对"（毫米级裁切、正确底色、可打印的整版、各国规格），而不是模型能力**。这正是 Google 和 Canva 不会做的事，也是我们唯一能守住的东西。
+
+**第一个要拿到的结果，因此应该定义得很小**：一个俄语 `фото 3 на 4` 页面，能真的产出合规可打印的成品 → 被收录 → 排进前排 → 免费额度用完 → 注册 → 首张出图。这一个闭环跑通，后面每一个「规格 × 语言」都是可复制的单元；跑不通，就不要铺 80 个页面。
+
+### 下一步的顺序（按"反馈周期最短"排，不按流量排）
+
+1. **先接住已经在来的需求**（0–2 周，近乎确定的信号）：`/blog` 三个月 1,022 次展示只有 8 次点击、平均排名 21.6，且 sitemap 36 条 URL 只有 9 条被收录；`visual enhancer` 595 次展示 CTR 2.9%、`upscaling` 349 次展示 CTR 2.3%。这些是**已经付过成本的曝光**，转化它们不需要新品类。
+2. **然后做那一个证件照闭环**（2–4 周）：一个规格页 + 规格引擎 + 打印输出 + `tool_slug + locale → 注册 → 首图` 埋点。
+3. **再谈矩阵**（4 周后）：把 `规格 × 语言` 当乘法单元铺开，用第 2 步的真实转化率决定铺多少。
+
+---
+
+## 12. 能力采购清单（能力是可以买的，按期望值排）
+
+上一版把"我们做不了"当成了排除理由，那是错的排序方式。**能力缺口是采购项，问题只在于先买哪个。**按"解锁多少已验证需求 + 成本"重排：
+
+| 优先级 | 要买的能力 | 解锁什么 | 为什么排这个位置 |
+|---|---|---|---|
+| **1** | **规格引擎**（各国证件照规格模板 + 毫米级裁切 + 打印整版输出）——**不是模型，是纯代码** | 证件照全族（9/9 语言、无巨头前排、用户已在付钱） | 最便宜（无需推理成本）、转化最高、护城河最真实。**先买这个，甚至不用买模型** |
+| **2** | **抠图 / alpha 通道模型** | ① 去背景族（9/9 语言需求）② **证件照的底色替换（红/蓝/白，正好是证件照的硬需求）** | 一个采购同时解锁第 1 和第 3 强的需求族，且第 1 项本来就需要它 |
+| **3** | **真 4K 超分**（独立超分模型，现有上游硬顶 1536px） | `upscale to 4k`（英语补全第一梯队）+ dlss5 主业口径的自洽 | 最贵、且它服务的是**最拥挤**的前排（`upscale image` 十个小工具站）；有钱先做 1 和 2 |
+| 4 | 视频超分 | Seedance 2.5 工作流（`docs/SEEDANCE25_VIDEO_SUPERRES_PLAN.md` 已写好） | GSC 里视频词只有 2 次展示、0 次点击——**需求还没出现**，不该现在投 |
+
+一句话：**先把 1 和 2 买下来，它们两个合起来覆盖 `passport-photo` + `remove-background` 这两个 9/9 的需求族；第 3 项价格最贵而前排最难，排在后面。**
+
+（§4 第二梯队里"前置条件：必须先补能力"和 §6 里"暂缓"的说法按本节作废——能力是采购项，改为"买什么、什么时候买"。）
