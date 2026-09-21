@@ -1,0 +1,70 @@
+{{{ head_html }}}
+<main class="wrap">
+  <p class="eyebrow">{{ topic.kind }} · {{ topic.date }}</p>
+  <h1>{{ topic.title }}</h1>
+  <p class="lead">{{ topic.subtitle }}</p>
+  <div class="meta">
+{{#each topic.tags}}
+    <span class="chip brand">{{ this }}</span>
+{{/each}}
+    <span>{{ topic.reading_minutes }} 分钟阅读</span>
+  </div>
+
+  <div class="grid three">
+{{#each topic.key_facts}}
+    <div class="card">
+      <p class="fact-label">{{ label }}</p>
+      <p class="fact-value">{{ value }}</p>
+    </div>
+{{/each}}
+  </div>
+
+  <div class="meta">
+{{#if topic.canonical.repo}}
+    <a class="btn" href="{{ topic.canonical.repo }}">查看仓库</a>
+{{/if}}
+{{#if topic.canonical.paper}}
+    <a class="btn secondary" href="{{ topic.canonical.paper }}">论文</a>
+{{/if}}
+{{#if has_article}}
+    <a class="btn secondary" href="{{ topic.blog_href }}">完整长文</a>
+{{/if}}
+  </div>
+
+{{#if has_article}}
+  <section class="prose">
+    {{{ article_html }}}
+  </section>
+{{/if}}
+
+{{#if evidence.length}}
+  <h2>证据</h2>
+  <ul class="evidence">
+{{#each evidence}}
+    <li>
+      <p>{{ claim }}</p>
+{{#if quote}}
+      <q>{{ quote }}</q>
+{{/if}}
+      <p class="src"><a href="{{ source }}">{{ host }}</a>{{#if verified}} · 已核验{{/if}}</p>
+    </li>
+{{/each}}
+  </ul>
+{{/if}}
+
+  <h2>链接</h2>
+  <ul class="links">
+{{#each topic.links}}
+    <li><a class="chip" href="{{ url }}">{{ label }}</a></li>
+{{/each}}
+  </ul>
+
+{{#if cta}}
+  <section class="cta">
+    <h2>{{ cta.headline }}</h2>
+    {{{ cta.body_html }}}
+    <a class="btn" href="{{ cta.url }}">{{ cta.label }}</a>
+  </section>
+{{/if}}
+</main>
+{{{ footer_html }}}

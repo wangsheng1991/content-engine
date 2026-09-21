@@ -1,0 +1,65 @@
+title: "一张照片不到 1 秒变成 3D 场景：Apple SHARP 讲清楚"
+target_seconds: 240
+scenes:
+  - id: hook
+    seconds: 20
+    onscreen: "一张照片，不到 1 秒变成 3D 场景"
+    visual: "一张普通街景照片占满画面，画面轻微推近，随后从照片里「长」出一层立体的点云。"
+    voiceover: |
+      Apple 开源了一个叫 SHARP 的模型：给它一张照片，它在不到 1 秒里就能把这张照片读成一个 3D 场景。
+      今天用几分钟把它讲明白。
+  - id: problem
+    seconds: 35
+    onscreen: "难点：一张图没有视差"
+    visual: "左侧是照片，右侧是空白的新视角框；画面用箭头表示缺失的深度与遮挡信息。"
+    voiceover: |
+      单目视图合成要解决的问题是：给一张照片，生成它附近视角的新画面，而且要像真的。
+      难点在于一张照片没有视差，深度、遮挡、反射这些信息都缺。
+      所以此前的做法常常要在「更真」和「更快」之间二选一。
+  - id: method
+    seconds: 40
+    onscreen: "思路：一次前馈，直接回归 3D 高斯"
+    visual: "神经网络方块从照片出发，输出一串高斯椭球的参数，箭头标注 single feedforward pass。"
+    voiceover: |
+      SHARP 的做法是不一步步重建，而是让神经网络一次前馈，直接回归出这个场景的 3D 高斯表示参数。
+      按 README 的描述，整个过程在标准 GPU 上耗时不到 1 秒。
+      得到的高斯表示可以实时渲染，输出附近视角的高分辨率写实图像。
+  - id: metric
+    seconds: 35
+    onscreen: "这个 3D 是「有尺度」的"
+    visual: "场景中叠加一条带米制单位的位移箭头，旁边显示 OpenCV 坐标系示意，标注 x 右、y 下、z 前。"
+    voiceover: |
+      有一点容易被忽略：这个表示是 metric 的，带绝对尺度，所以支持米制的相机运动，位移是有物理单位的。
+      坐标遵循 OpenCV 约定：x 向右、y 向下、z 向前，场景中心大致在 (0, 0, +z)。
+      接第三方渲染器时，需要自己缩放和旋转来重新居中。
+  - id: numbers
+    seconds: 40
+    onscreen: "关键数字"
+    visual: "屏幕中央一张对比表：LPIPS 降低 25–34%，DISTS 降低 21–43%，合成耗时降低三个数量级。"
+    voiceover: |
+      效果上，按官方 README 的表述，它在多个数据集上把 LPIPS 降低 25–34%，DISTS 降低 21–43%，对比的是此前的最佳模型。
+      同时合成耗时降低了三个数量级，并且具备跨数据集的鲁棒零样本泛化。
+      注意这些是相对改善的幅度，不是绝对分值。
+  - id: run
+    seconds: 40
+    onscreen: "sharp predict 一行跑通"
+    visual: "终端窗口逐行打出 conda、pip 和 sharp predict 命令，最后出现输出目录下的 ply 文件列表。"
+    voiceover: |
+      上手成本很低。建一个 python=3.13 的环境，装好依赖，跑 sharp --help 确认安装成功。
+      真正的推理只有一行：sharp predict，用 -i 指定输入图片目录，-o 指定输出高斯目录。
+      权重第一次运行会自动下载，缓存在 torch hub 的 checkpoints 目录里。
+  - id: limits
+    seconds: 30
+    onscreen: "现在还不能做什么"
+    visual: "三条清单依次打勾或打叉：CPU、CUDA、MPS 可预测；渲染轨迹视频需要 CUDA；第三方渲染器要重新居中。"
+    voiceover: |
+      局限也说清楚。高斯预测在 CPU、CUDA 和 MPS 上都能跑，但用 --render 渲染相机轨迹视频，目前需要 CUDA GPU。
+      gsplat 渲染器首次启动初始化要等一会儿。
+      定量和定性的评估细节在论文和项目页里，这里只复述 README 和摘要的表述。
+  - id: wrap
+    seconds: 20
+    onscreen: "自己跑一遍"
+    visual: "结尾画面回到那张街景照片，旁边是仓库、论文与项目页的地址，最后出现行动提示。"
+    voiceover: |
+      仓库、论文和项目主页的地址都在屏幕上。
+      先把 sharp predict 指向你自己的照片跑一遍，如果你只是想先把手里的图变清楚，也可以直接试试在线 AI 图像增强。

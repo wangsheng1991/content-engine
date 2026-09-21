@@ -1,0 +1,41 @@
+{{{ head_html }}}
+<main class="wrap">
+  <p class="eyebrow">Blog · {{ topic.date }}</p>
+  <h1>{{ topic.title }}</h1>
+  <p class="lead">{{ topic.subtitle }}</p>
+  <div class="meta">
+{{#each topic.tags}}
+    <span class="chip">{{ this }}</span>
+{{/each}}
+    <span>{{ topic.reading_minutes }} 分钟阅读</span>
+    <a href="{{ topic.href }}">主题页</a>
+  </div>
+
+  <section class="prose">
+    {{{ article_html }}}
+  </section>
+
+{{#if evidence.length}}
+  <h2>证据</h2>
+  <ul class="evidence">
+{{#each evidence}}
+    <li>
+      <p>{{ claim }}</p>
+{{#if quote}}
+      <q>{{ quote }}</q>
+{{/if}}
+      <p class="src"><a href="{{ source }}">{{ host }}</a></p>
+    </li>
+{{/each}}
+  </ul>
+{{/if}}
+
+{{#if cta}}
+  <section class="cta">
+    <h2>{{ cta.headline }}</h2>
+    {{{ cta.body_html }}}
+    <a class="btn" href="{{ cta.url }}">{{ cta.label }}</a>
+  </section>
+{{/if}}
+</main>
+{{{ footer_html }}}

@@ -1,0 +1,22 @@
+{{{ head_html }}}
+<main class="wrap">
+  <p class="eyebrow">{{ site.tagline }}</p>
+  <h1>{{ site.name }}</h1>
+  <p class="lead">{{ site.description }}</p>
+
+  <div class="grid two">
+{{#each topics}}
+    <article class="card">
+      <p class="eyebrow">{{ kind }} · {{ date }}</p>
+      <h3><a href="{{ href }}">{{ title }}</a></h3>
+      <p>{{ subtitle }}</p>
+      <div class="meta">
+{{#each tags}}
+        <span class="chip">{{ this }}</span>
+{{/each}}
+      </div>
+    </article>
+{{/each}}
+  </div>
+</main>
+{{{ footer_html }}}

@@ -1,0 +1,128 @@
+#!/usr/bin/env node
+// content — the CLI over the compiler.
+//
+//   content build [slug...] [--all] [--site-only] [--out dist]
+//   content publish [--git] [--dry-run]
+//   content new <slug> [--title "..."]
+//   content list
+//   content serve [--port 4173]
+//   content --help
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { build, loadConfig, scaffoldTopic } from '../src/build.mjs';
+import { gitPublish, publishReport, readManifest } from '../src/publish.mjs';
+import { serve } from '../src/serve.mjs';
+import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+function parseArgs(argv) {
+  const flags = {};
+  const rest = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg.startsWith('--')) {
+      const [key, inline] = arg.slice(2).split('=');
+      if (inline !== undefined) flags[key] = inline;
+      else if (argv[i + 1] && !argv[i + 1].startsWith('--')) flags[key] = argv[++i];
+      else flags[key] = true;
+    } else rest.push(arg);
+  }
+  return { flags, rest };
+}
+
+const HELP = `content — GitHub-first content engine
+
+用法:
+  content build [slug...] [--all] [--site-only] [--out <dir>]
+  content publish [--git] [--dry-run]
+  content new <slug> [--title "..."] [--date YYYY-MM-DD]
+  content list
+  content serve [--port 4173] [--dir <dir>]
+  content --help
+
+约定:
+  topics/<slug>/ 是唯一内容源；dist/ 全部由 content build 生成，不手改。
+  Tier A 产物（网站/GitHub/Hugging Face/RSS）可全自动发布；
+  Tier B 产物（小红书/Reddit/X/知乎/PPT/视频脚本）一律停在草稿等人工确认。
+`;
+
+async function main() {
+  const [command, ...argv] = process.argv.slice(2);
+  const { flags, rest } = parseArgs(argv);
+  const config = loadConfig(ROOT);
+
+  switch (command) {
+    case 'build': {
+      const manifest = build({
+        root: ROOT,
+        config,
+        slugs: rest.length ? rest : undefined,
+        siteOnly: Boolean(flags['site-only']),
+        outDir: flags.out ? path.resolve(ROOT, flags.out) : undefined,
+        log: (line) => console.log(line),
+      });
+      const tierA = manifest.artifacts.filter((a) => a.tier === 'A').length;
+      const tierB = manifest.artifacts.filter((a) => a.tier === 'B').length;
+      console.log(`\n构建完成：${manifest.topics.length} 个主题，Tier A ${tierA} 个 / Tier B ${tierB} 个产物`);
+      for (const note of manifest.notes) console.log(`  · ${note}`);
+      console.log(`输出目录：${path.relative(ROOT, path.join(ROOT, flags.out ?? config.paths.out))}/`);
+      break;
+    }
+    case 'publish': {
+      const manifest = readManifest(ROOT, config);
+      publishReport({ manifest, log: console.log });
+      if (flags.git || flags['dry-run']) {
+        gitPublish({
+          root: ROOT,
+          dryRun: Boolean(flags['dry-run']),
+          message: `content: publish${rest.length ? ` ${rest.join(', ')}` : ''}`,
+          log: console.log,
+        });
+      }
+      break;
+    }
+    case 'new': {
+      const slug = rest[0];
+      if (!slug) throw new Error('usage: content new <slug>');
+      const dir = scaffoldTopic(ROOT, slug, { topicsDir: config.paths.topics, title: flags.title ?? slug, date: flags.date });
+      console.log(`已创建主题骨架：${path.relative(ROOT, dir)}`);
+      break;
+    }
+    case 'list': {
+      for (const slug of listTopicSlugs(ROOT, config.paths.topics)) {
+        const topic = loadTopic(ROOT, slug, { topicsDir: config.paths.topics });
+        const parts = [
+          `article ${topic.article ? '✓' : '—'}`,
+          `readme ${topic.readme ? '✓' : '—'}`,
+          `slides ${topic.slides ? '✓' : '—'}`,
+          `video ${topic.video ? '✓' : '—'}`,
+          `evidence ${topic.evidence?.claims?.length ?? 0}`,
+        ];
+        console.log(`${slug.padEnd(24)} ${topic.source.status}  ${parts.join('  ')}`);
+      }
+      break;
+    }
+    case 'serve': {
+      await serve({
+        dir: path.resolve(ROOT, flags.dir ?? path.join(config.paths.out, 'site')),
+        port: Number(flags.port ?? 4173),
+      });
+      break;
+    }
+    case 'help':
+    case '--help':
+    case undefined:
+      console.log(HELP);
+      break;
+    default:
+      console.error(`unknown command: ${command}\n`);
+      console.log(HELP);
+      process.exitCode = 1;
+  }
+}
+
+main().catch((error) => {
+  console.error(`error: ${error.message}`);
+  process.exitCode = 1;
+});

@@ -1,0 +1,51 @@
+slug: ml-sharp
+title: "SHARP：单张图的秒级 3D 高斯视图合成"
+subtitle: "Apple 用单次前馈把一张照片读成可实时渲染的 metric 3D 高斯场景。"
+kind: research
+date: 2026-09-21
+updated: 2026-09-21
+status: published
+summary: |
+  SHARP 是 Apple 提出的单目视图合成方法：给定一张照片，它在单次前馈中回归出场景的 3D 高斯表示，标准 GPU 上耗时不到 1 秒。得到的 3DGS 可以被实时渲染，输出附近视角的高分辨率写实图像，而且表示是 metric 的，带绝对尺度，支持米制相机运动。
+  按 README 与论文摘要，它在多个数据集上把 LPIPS 降低 25–34%、DISTS 降低 21–43%，同时把合成耗时降低三个数量级。
+  对开发者来说，值得看的是它把「重建」压缩成了一次前馈调用，并且给出了现成的 CLI 与权重。
+tags: [3D vision, gaussian splatting, view synthesis, Apple]
+hashtags: [Apple开源, 3D高斯, 视图合成, 计算机视觉, 论文解读]
+canonical:
+  repo: https://github.com/apple/ml-sharp
+  paper: https://arxiv.org/abs/2512.10685
+  project: https://apple.github.io/ml-sharp/
+  model: https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt
+key_facts:
+  - label: 合成耗时
+    value: "标准 GPU 上不到 1 秒，单次前馈"
+  - label: LPIPS
+    value: "较此前最佳模型降低 25–34%"
+  - label: DISTS
+    value: "较此前最佳模型降低 21–43%"
+  - label: 加速幅度
+    value: "合成耗时降低三个数量级"
+  - label: 输出表示
+    value: "metric 3D 高斯（3DGS），输出 .ply 文件"
+  - label: 泛化
+    value: "论文称具备鲁棒的零样本泛化"
+links:
+  - label: "arXiv 2512.10685"
+    url: https://arxiv.org/abs/2512.10685
+  - label: "项目主页"
+    url: https://apple.github.io/ml-sharp/
+  - label: "官方仓库"
+    url: https://github.com/apple/ml-sharp
+  - label: "模型权重"
+    url: https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt
+platforms:
+  xiaohongshu:
+    title: "一张照片变 3D 场景，还不到 1 秒📸"
+    hook: "Apple 开源了 SHARP：单张照片直接生成能实时渲染的 3D 高斯。"
+  reddit:
+    title: "Apple's SHARP turns a single photo into a renderable 3D Gaussian scene in under a second"
+    hook: "Apple released SHARP: one photo in, a metric 3D Gaussian splat out, in under a second on a standard GPU."
+  x:
+    title: "Apple's SHARP: one photo in, a metric 3D Gaussian scene out, in under a second."
+  zhihu:
+    title: "单张照片不到 1 秒变成可实时渲染的 3D 高斯，Apple 的 SHARP 是怎么做到的？"

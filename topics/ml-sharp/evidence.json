@@ -1,0 +1,76 @@
+{
+  "topic": "ml-sharp",
+  "checked_at": "2026-09-21",
+  "claims": [
+    {
+      "id": "feedforward-under-one-second",
+      "claim": "SHARP 通过单次前馈在标准 GPU 上以不到 1 秒的时间回归出场景的 3D 高斯表示参数。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "Given a single photograph, SHARP regresses the parameters of a 3D Gaussian representation of the depicted scene. This is done in less than a second on a standard GPU via a single feedforward pass through a neural network.",
+      "verified": true
+    },
+    {
+      "id": "realtime-render-nearby-views",
+      "claim": "SHARP 产出的 3D 高斯表示可以被实时渲染，生成附近视角的高分辨率写实图像。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "The 3D Gaussian representation produced by SHARP can then be rendered in real time, yielding high-resolution photorealistic images for nearby views.",
+      "verified": true
+    },
+    {
+      "id": "metric-absolute-scale",
+      "claim": "该表示是 metric 的，带绝对尺度，支持米制的相机运动。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "The representation is metric, with absolute scale, supporting metric camera movements.",
+      "verified": true
+    },
+    {
+      "id": "zero-shot-generalization",
+      "claim": "实验结果展示了 SHARP 跨数据集的鲁棒零样本泛化能力。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "Experimental results demonstrate that SHARP delivers robust zero-shot generalization across datasets.",
+      "verified": true
+    },
+    {
+      "id": "lpips-dists-and-synthesis-time",
+      "claim": "在多个数据集上，SHARP 相对此前最佳模型把 LPIPS 降低 25–34%、DISTS 降低 21–43%，同时把合成耗时降低三个数量级。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "It sets a new state of the art on multiple datasets, reducing LPIPS by 25–34% and DISTS by 21–43% versus the best prior model, while lowering the synthesis time by three orders of magnitude.",
+      "verified": true
+    },
+    {
+      "id": "output-is-3dgs-ply",
+      "claim": "预测结果是以 3D 高斯泼溅（3DGS）形式存放在输出目录中的可渲染结果。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "The results will be 3D gaussian splats (3DGS) in the output folder.",
+      "verified": true
+    },
+    {
+      "id": "cli-predict-command",
+      "claim": "官方 CLI 的预测入口是 sharp predict，用 -i 指定输入图像目录、-o 指定输出高斯目录。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "sharp predict -i /path/to/input/images -o /path/to/output/gaussians",
+      "verified": true
+    },
+    {
+      "id": "checkpoint-auto-download",
+      "claim": "模型权重在第一次运行时自动下载，并缓存到 ~/.cache/torch/hub/checkpoints/。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "The model checkpoint will be downloaded automatically on first run and cached locally at `~/.cache/torch/hub/checkpoints/`.",
+      "verified": true
+    },
+    {
+      "id": "render-requires-cuda",
+      "claim": "高斯预测在 CPU、CUDA 和 MPS 上都能工作，但通过 --render 渲染相机轨迹视频目前需要 CUDA GPU。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "While the gaussians prediction works for all CPU, CUDA, and MPS, rendering videos via the `--render` option currently requires a CUDA GPU.",
+      "verified": true
+    },
+    {
+      "id": "opencv-coordinate-convention",
+      "claim": "输出的 3DGS 遵循 OpenCV 坐标约定（x 右、y 下、z 前），场景中心大致在 (0, 0, +z)，接第三方渲染器时需要自行缩放与旋转来重新居中。",
+      "source": "https://raw.githubusercontent.com/apple/ml-sharp/main/README.md",
+      "quote": "We follow the OpenCV coordinate convention (x right, y down, z forward). The 3DGS scene center is roughly at (0, 0, +z). When dealing with 3rdparty renderers, please scale and rotate to re-center the scene accordingly.",
+      "verified": true
+    }
+  ]
+}

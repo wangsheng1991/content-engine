@@ -1,0 +1,22 @@
+{
+  "name": "content-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GitHub-first content engine: one topic directory compiles into a website, blog, RSS, Hugging Face card, deck, video script and platform drafts.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "content": "./bin/content.mjs"
+  },
+  "scripts": {
+    "build": "node bin/content.mjs build --all",
+    "build:site": "node bin/content.mjs build --all --site-only",
+    "publish": "node bin/content.mjs publish",
+    "serve": "node bin/content.mjs serve",
+    "test": "node tests/run.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
