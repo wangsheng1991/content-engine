@@ -13,7 +13,7 @@
 
 2. **普适 ≠ 能赚钱。**下载器类品类成立的三条里，最容易被忽略的是第四条：「用户手上的东西离钱只有一步」。下载器用户要的是白拿别人内容的副本，所以流量再大也换不成付费。AI 图像里符合这一条的反而是最不"性感"的品类 —— **证件照/护照照**：用户今天就在照相馆花钱拍，有截止日期，有硬性规格，AI 的能力刚好够。这是本报告的第一推荐。
 
-3. **一个必须马上接受的坏消息：这一整层需求正在被 Gemini 和 Canva 免费收编。**补全证据里，几乎每个族、每种语言都同时出现 `canva` / `gemini` / `chatgpt` / `photoshop` / `パワポ` / `小画家` 这类"对比现有工具"的修饰词（原文见 §5）。也就是说：**"免费图片编辑"这个卖点已经被 Google 免费送掉了**，照抄 Navos 的"免费工具 × 多语言 × 程序化变体"公式，在今天会遇到一个 2023 年不存在的对手。工具层不能赢在"免费"，只能赢在"**交付物**"—— 一个可以直接拿去用、能过审、能打印、能上传到平台的成品文件。Google 不会做"智利 RUT 规格的证件照"。
+3. **一个必须马上接受的坏消息：这一整层需求正在被 Canva、Photoshop 和 Gemini 收编。**108 个（族 × 语言）组合里有 **40 个**的补全中直接点名了一个现有工具 —— `canva` 出现在 17 个（en/es/pt/id/vi/ja）、`photoshop` 16 个（en/es/pt/id/vi/zh）、`gemini` 12 个（es/pt/id/vi/ja/en）、`chatgpt` 7 个、`iphone` 9 个，另有 `word`/`パワポ`/`ペイント`/`小画家`/`ppt`（原文见 §5）。也就是说：**"免费改图"这个卖点正在被 Google 和 Canva 免费送掉**，照抄 Navos 的"免费工具 × 多语言 × 程序化变体"公式，在今天会遇到一个 2023 年不存在的对手。工具层不能赢在"免费"，只能赢在"**交付物**"—— 一个可以直接拿去用、能过审、能打印、能上传到平台的成品文件。Google 不会做"智利 RUT 规格的证件照"。
 
 4. **dlss5 今天就能服务的族**：增强/放大、去模糊、老照片修复、上色、证件照、职业照、海报、头像（`mode: 'edit'` 的 prompt 驱动编辑）。
    **今天服务不了的**：真透明 PNG（无 alpha 通道、无抠图模型）、真 4K。`ENHANCE_MAX_EDGE = 1536`，且 `flux-klein` 是**重绘型**编辑模型，不是真正的逐像素超分（`src/config/enhance.ts` 的注释和 `docs/alphanet-superres-endpoint.md` 都写明了这一点）。
@@ -132,7 +132,7 @@ Navos 的武器不是"工具站"，而是找到了一类同时满足四个条件
 | **免费** | `free` · `gratis` · `grátis`/`gratuito` · `gratis` · `miễn phí` · `бесплатно` · `無料` · `무료` · `免费` | 工具页的默认卖点（但要配额度闸门，见 §6） |
 | **在线/网页** | `online` · `online gratis` · `online grátis` · `online` · `online` · `онлайн` · `サイト`/`web`/`ブラウザ` · `사이트` · `在线`/`线上`/`网站` | 每族一个在线工具页，标题必须带本地说法 |
 | **AI / 神经网络** | `ai` · `ia` · `ia`/`ai` · `ai` · `bằng ai` · `нейросеть` · `ai` · `ai` · `ai` | "vs 传统 PS 做法"的正文段落 |
-| **对比现有工具** | `canva`(全部) · `photoshop`/`фотошоп`/`ps` · `gemini`(es/pt/id/ko/zh) · `chatgpt` · `word`/`パワポ`/`ペイント`/`小画家`/`ppt` · `iphone` | **`/tools/<slug>-vs-canva`、`-vs-photoshop`、`-vs-gemini`**，只在有补全证据的语言做 |
+| **对比现有工具** | `canva`(17 个组合：en/es/pt/id/vi/ja) · `photoshop`/`фотошоп`/`ps`(16：en/es/pt/id/vi/zh) · `gemini`(12：en/es/pt/id/vi/ja) · `chatgpt`(7) · `word`/`パワポ`/`ペイント`/`小画家`/`ppt` · `iphone`(9：含 ja/zh) | **`/tools/<slug>-vs-canva`、`-vs-photoshop`、`-vs-gemini`**，只在有补全证据的语言做 |
 | **质量不打折** | `quality` · `sin perder calidad` · `sem perder qualidade` · `agar tidak pecah`/`hd` · `без потери качества` · `高画質` · `清晰` | 页面的第一句价值主张（也是付费升级点） |
 | **输出规格** | `png` · `300 dpi` · `4k`/`8k` · `3x4`/`4x4`/`2x3`/`3 на 4` · `fondo blanco`/`latar merah`/`белый фон`/`nền trắng` | **`/tools/passport-photo/<spec>` 规格页**：`4x4-chile`、`3x4-latar-merah`、`2x3-jas`、`3-na-4` |
 | **合规 / 可用性** | `requirements`/`legit`/`cost`/`reviews` · `バレる` · `可以用吗` · `деловой` | 独立的"规格与合规"章节，这是**信任页**不是营销页 |
