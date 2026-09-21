@@ -1,0 +1,1573 @@
+{
+ "_meta": {
+  "collected_at": "2026-09-21",
+  "source": "suggestqueries.google.com/complete/search (client=firefox)",
+  "warning": "autocomplete presence is query-existence evidence, not search volume"
+ },
+ "families": {
+  "upscale": {
+   "en": {
+    "query": "upscale image",
+    "suggestions": [
+     "upscale image",
+     "upscale image free",
+     "upscale image ai",
+     "upscale image to 4k",
+     "upscale image online",
+     "upscale image free online",
+     "upscale image in photoshop",
+     "upscale image quality",
+     "upscale image ai free",
+     "upscale image to 4k free",
+     "upscale image resolution"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "aumentar resolucion de imagen",
+    "suggestions": [
+     "aumentar resolucion de imagen",
+     "aumentar resolucion de imagen ia",
+     "aumentar resolucion de imagen gratis",
+     "aumentar resolucion de imagen online gratis",
+     "aumentar resolucion de imagen en photoshop",
+     "aumentar resolucion de imagen con ia gratis",
+     "aumentar resolucion de imagen canva",
+     "aumentar resolución de imagen online",
+     "aumentar resolucion de imagen sin perder calidad",
+     "aumentar resolucion de imagen a 300 dpi",
+     "aumentar resolucion de imagen a 300 ppp"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "aumentar resolucao de imagem",
+    "suggestions": [
+     "aumentar resolução de imagem",
+     "aumentar resolução de imagem gratuito",
+     "aumentar resolução de imagem com ia",
+     "aumentar resolução de imagem online",
+     "aumentar resolução de imagem online grátis",
+     "aumentar resolução de imagem ai",
+     "aumentar resolução de imagem canva",
+     "aumentar resolução de imagem photoshop",
+     "aumentar resolução de imagem png",
+     "aumentar resolução de imagem sem perder qualidade"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "memperbesar resolusi foto",
+    "suggestions": [
+     "memperbesar resolusi foto",
+     "memperbesar resolusi foto online",
+     "memperbesar resolusi foto gratis",
+     "memperbesar resolusi foto online gratis",
+     "memperbesar resolusi foto agar tidak pecah",
+     "memperbesar resolusi foto jpg",
+     "memperbesar resolusi foto dengan photoshop",
+     "memperbesar resolusi foto ai",
+     "memperbesar resolusi foto di canva",
+     "memperbesar resolusi foto hd"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "nâng cấp ảnh",
+    "suggestions": [
+     "nâng cấp ảnh",
+     "nâng cấp ảnh lên 4k miễn phí",
+     "nâng cấp ảnh lên 4k",
+     "nâng cấp ảnh 4k",
+     "nâng cấp ảnh online",
+     "nâng cấp ảnh ai",
+     "nâng cấp ảnh bằng ai",
+     "nâng cấp ảnh taoanhdep",
+     "nâng cấp ảnh lên 8k",
+     "nâng cấp ảnh hd",
+     "nâng cấp ảnh iloveimg"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "увеличить разрешение фото",
+    "suggestions": [
+     "увеличить разрешение фото",
+     "увеличить разрешение фото онлайн",
+     "увеличить разрешение фото онлайн бесплатно",
+     "увеличить разрешение фото нейросеть",
+     "увеличить разрешение фото без потери качества",
+     "увеличить разрешение фотографии",
+     "увеличить разрешение фото бесплатно",
+     "увеличить разрешение фото в пикселях",
+     "увеличить разрешение фото ai",
+     "увеличить разрешение фото до 4к",
+     "увеличить разрешение фото ии",
+     "увеличить разрешение фото 1920 x 1080"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "画像 高画質 化",
+    "suggestions": [
+     "画像 高画質 化",
+     "画像 高画質 化 pc 無料"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "사진 화질 향상",
+    "suggestions": [
+     "사진 화질 향상",
+     "사진 화질 향상 ai",
+     "사진 화질 향상 사이트"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "图片放大",
+    "suggestions": [
+     "图片放大",
+     "图片放大变清晰",
+     "图片放大工具",
+     "图片放大器",
+     "图片放大网站",
+     "图片放大ai",
+     "图片放大清晰",
+     "图片 放大镜 特效",
+     "图片放大在线",
+     "图片放大镜效果",
+     "图片放大不模糊"
+    ],
+    "error": null
+   }
+  },
+  "remove-background": {
+   "en": {
+    "query": "remove background",
+    "suggestions": [
+     "remove background",
+     "remove background free",
+     "remove background from image free",
+     "remove background from image",
+     "remove background from video",
+     "remove background png",
+     "remove background from gif",
+     "remove background photoshop",
+     "remove background from image iphone",
+     "remove background noise from video",
+     "remove background from photo"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "quitar fondo de una foto",
+    "suggestions": [
+     "quitar fondo de una foto",
+     "quitar fondo de una foto gratis",
+     "quitar fondo de una foto online",
+     "quitar fondo de una foto online gratis",
+     "quitar fondo de una foto con ia",
+     "quitar fondo de una foto en iphone",
+     "quitar fondo de una foto en canva",
+     "quitar fondo de una foto en word",
+     "quitar fondo de una foto png",
+     "quitar fondo de una foto en illustrator",
+     "quitar fondo de una foto de firma"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "remover fundo de foto",
+    "suggestions": [
+     "remover fundo de foto",
+     "remover fundo de foto gratis",
+     "remover fundo de foto online",
+     "remover fundo de foto online grátis",
+     "remover fundo de foto sem perder qualidade",
+     "remover fundo de foto png",
+     "remover fundo de fotos gratuito",
+     "remover fundo de foto canva",
+     "remover fundo de foto com ia",
+     "remover fundo de foto iphone",
+     "remover fundo de foto com qualidade",
+     "remover fundo de foto no photoshop"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "hapus background foto",
+    "suggestions": [
+     "hapus background foto",
+     "hapus background foto online",
+     "hapus background foto hd",
+     "hapus background foto gratis",
+     "hapus background foto online gratis",
+     "hapus background foto hd gratis",
+     "hapus background foto di word",
+     "hapus background foto jadi png",
+     "hapus background foto canva",
+     "hapus background foto ttd",
+     "hapus background foto png"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "xóa nền ảnh",
+    "suggestions": [
+     "xóa nền ảnh",
+     "xóa nền ảnh chữ ký",
+     "xóa nền ảnh online",
+     "xóa nền ảnh online free",
+     "xóa nền ảnh free",
+     "xóa nền ảnh trong word",
+     "xóa nền ảnh trong canva",
+     "xóa nền ảnh bằng ai",
+     "xóa nền ảnh png",
+     "xóa nền ảnh chữ ký trong word",
+     "xóa nền ảnh trong powerpoint"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "удалить фон с фото",
+    "suggestions": [
+     "удалить фон с фото",
+     "удалить фон с фото онлайн",
+     "удалить фон с фото онлайн бесплатно",
+     "удалить фон с фото бесплатно",
+     "удалить фон с фото без потери качества",
+     "удалить фон с фото айфон",
+     "удалить фон с фото пнг",
+     "удалить фон с фото вручную",
+     "удалить фон с фото и сделать пнг",
+     "удалить фон с фото фотошоп",
+     "удалить фон с фото ии"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "画像 背景 透過",
+    "suggestions": [
+     "画像 背景 透過",
+     "画像 背景 透過 無料",
+     "画像 背景 透過 パワポ",
+     "画像 背景 透過 ペイント",
+     "画像 背景 透過 方法",
+     "画像 背景 透過 ワード",
+     "画像 背景 透過 エクセル"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "배경 제거",
+    "suggestions": [
+     "배경 제거",
+     "배경 제거 고화질 무료",
+     "배경 제거 사이트",
+     "배경 제거 ai",
+     "배경 제거 무료",
+     "배경 제거 png",
+     "배경 제거 프로그램",
+     "배경 제거 고화질",
+     "배경 제거 무료 사이트",
+     "배경 제거하기",
+     "배경 제거 앱",
+     "배경 제거 사이트 고화질"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "图片去背景",
+    "suggestions": [
+     "图片去背景",
+     "图片去背景变透明",
+     "图片去背景在线",
+     "图片去背景 线上",
+     "图片去背景 免费",
+     "图片去背景色",
+     "图片去背景颜色",
+     "图片去背景 英文",
+     "图片去背景 小画家",
+     "图片去背景 ppt"
+    ],
+    "error": null
+   }
+  },
+  "unblur": {
+   "en": {
+    "query": "unblur image",
+    "suggestions": [
+     "unblur image",
+     "unblur image free",
+     "unblur image online free",
+     "unblur image ai free",
+     "unblur image without ai",
+     "unblur image online",
+     "unblur image video",
+     "unblur image app",
+     "unblur image text",
+     "unblur image chatgpt",
+     "unblur image iphone"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "mejorar calidad de foto borrosa",
+    "suggestions": [
+     "mejorar calidad de foto borrosa",
+     "mejorar calidad de foto borrosa gratis",
+     "mejorar calidad de foto borrosa online",
+     "mejorar calidad de foto borrosa online gratis",
+     "mejorar calidad de foto borrosa ai",
+     "prompt para mejorar calidad de foto borrosa",
+     "como mejorar la calidad de una foto borrosa en canva",
+     "como mejorar la calidad de una foto borrosa en photoshop",
+     "app para mejorar la calidad de una foto borrosa",
+     "como.puedo mejorar la calidad de una.foto borrosa"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "melhorar qualidade de foto desfocada",
+    "suggestions": [
+     "melhorar qualidade de foto desfocada"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "memperjelas foto buram",
+    "suggestions": [
+     "memperjelas foto buram",
+     "memperjelas foto buram gratis",
+     "memperjelas foto buram online",
+     "memperjelas foto buram online gratis",
+     "memperjelas foto buram ai",
+     "memperjelas foto buram jadi jernih",
+     "cara memperjelas foto buram",
+     "aplikasi memperjelas foto buram",
+     "memperjelas foto yang buram",
+     "memperjelas foto tulisan buram"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "làm nét ảnh bị mờ",
+    "suggestions": [
+     "làm nét ảnh bị mờ",
+     "làm nét ảnh bị mờ bằng photoshop",
+     "làm nét ảnh bị mờ chữ",
+     "làm nét ảnh bị mờ miễn phí",
+     "cách làm nét ảnh bị mờ",
+     "app làm nét ảnh bị mờ",
+     "cách làm nét ảnh bị mờ trên điện thoại",
+     "cách làm nét ảnh bị mờ trên iphone",
+     "làm nét ảnh bị che mờ",
+     "làm nét ảnh chụp bị mờ",
+     "làm nét ảnh bị mờ online",
+     "làm nét ảnh bị mờ bằng ai",
+     "web làm nét ảnh bị mờ",
+     "làm rõ nét ảnh bị mờ online",
+     "làm nét hình ảnh bị mờ"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "улучшить качество фото",
+    "suggestions": [
+     "улучшить качество фото",
+     "улучшить качество фото онлайн",
+     "улучшить качество фото онлайн бесплатно",
+     "улучшить качество фото до 4к",
+     "улучшить качество фото бесплатно",
+     "улучшить качество фото нейросеть",
+     "улучшить качество фото онлайн нейросеть",
+     "улучшить качество фото онлайн до 4к бесплатно",
+     "улучшить качество фото ai",
+     "улучшить качество фото до 4к бесплатно",
+     "улучшить качество фото ии"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "ぼけ 画像 加工",
+    "suggestions": [],
+    "error": null
+   },
+   "ko": {
+    "query": "흐릿한 사진 보정",
+    "suggestions": [
+     "흐릿한 사진 보정"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "照片变清晰",
+    "suggestions": [
+     "照片变清晰",
+     "照片变清晰免费",
+     "照片变清晰 线上",
+     "照片变清晰 app",
+     "照片变清晰 ai",
+     "照片变清晰 ps",
+     "photoshop 照片变清晰",
+     "iphone 照片变清晰",
+     "三星 照片变清晰"
+    ],
+    "error": null
+   }
+  },
+  "restore-old-photo": {
+   "en": {
+    "query": "restore old photo",
+    "suggestions": [
+     "restore old photos",
+     "restore old photos online free",
+     "restore old photos free",
+     "restore old photos app",
+     "restore old photos near me",
+     "restore old photo with ai",
+     "restore old photos in photoshop",
+     "restore old photos app free",
+     "restore old photos online",
+     "restore old photographs",
+     "restore old photo online free",
+     "restore old photo in photoshop",
+     "restore old photo prompt",
+     "restore old photo prompt chatgpt",
+     "restore old photo gemini prompt",
+     "restore old photo ai prompt",
+     "restore old photo ai free",
+     "restore old photo online",
+     "restore old photo app"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "restaurar fotos antiguas",
+    "suggestions": [
+     "restaurar fotos antiguas gratis",
+     "restaurar fotos antiguas online gratis",
+     "restaurar fotos antiguas",
+     "restaurar fotos antiguas dañadas",
+     "restaurar fotos antiguas con ia",
+     "restaurar fotos antiguas photoshop",
+     "restaurar fotos antiguas con inteligencia artificial gratis",
+     "restaurar fotos antiguas online",
+     "restaurar fotos antiguas con ia gratis",
+     "restaurar fotos antiguas online gratis sin registro",
+     "restaurar fotos antiguas con gemini"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "restaurar fotos antigas",
+    "suggestions": [
+     "restaurar fotos antigas online grátis",
+     "restaurar fotos antigas",
+     "restaurar fotos antigas grátis",
+     "restaurar fotos antigas online",
+     "restaurar fotos antigas com ia gratuito",
+     "restaurar fotos antigas danificadas",
+     "restaurar fotos antigas com ia",
+     "restaurar fotos antigas online grátis ia",
+     "restaurar fotos antigas danificadas online",
+     "restaurar fotos antigas google fotos",
+     "restaurar fotos antigas danificadas grátis"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "memperbaiki foto lama",
+    "suggestions": [
+     "memperbaiki foto lama online gratis",
+     "memperbaiki foto lama yang rusak online",
+     "memperbaiki foto lama",
+     "memperbaiki foto lama yang rusak online gratis",
+     "memperbaiki foto lama dengan ai",
+     "memperbaiki foto lama dengan chatgpt",
+     "memperbaiki foto lama rusak dan berjamur",
+     "memperbaiki foto lama yang buram",
+     "memperbaiki foto lama rusak",
+     "memperbaiki foto lama dengan ai gratis",
+     "memperbaiki foto lama yang rusak",
+     "memperbaiki foto lama online",
+     "memperbaiki foto lama menjadi baru",
+     "memperbaiki foto lama gratis"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "phục hồi ảnh cũ",
+    "suggestions": [
+     "phục hồi ảnh cũ online miễn phí",
+     "phục hồi ảnh cũ",
+     "phục hồi ảnh cũ bằng ai",
+     "phục hồi ảnh cũ online",
+     "phục hồi ảnh cũ bằng ai miễn phí",
+     "phục hồi ảnh cũ ai",
+     "phục hồi ảnh cũ miễn phí",
+     "phục hồi ảnh cũ gần đây",
+     "phục hồi ảnh cũ ai online",
+     "phục hồi ảnh cũ ở tphcm",
+     "phục hồi ảnh cũ bằng gemini"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "восстановить старое фото",
+    "suggestions": [
+     "восстановить старое фото",
+     "восстановить старое фото онлайн",
+     "восстановить старое фото онлайн бесплатно",
+     "восстановить старое фото бесплатно",
+     "восстановить старое фото с помощью ии",
+     "восстановить старое фото онлайн нейросеть",
+     "восстановить старое фото нейросеть бесплатно",
+     "восстановить старое фото нейросеть",
+     "восстановить старое фото с помощью нейросетей",
+     "восстановить старое фото приложение",
+     "восстановить старое фото ии"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "古い写真 復元",
+    "suggestions": [
+     "古い写真 復元",
+     "古い写真 復元 安い",
+     "古い写真 復元 キタムラ",
+     "古い写真 復元 アプリ 無料",
+     "古い写真 復元 アプリ",
+     "古い写真 復元方法"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "오래된 사진 복원",
+    "suggestions": [
+     "오래된 사진 복원",
+     "오래된 사진 복원 ai",
+     "오래된 사진 복원 어플",
+     "오래된 사진 복원 프롬프트",
+     "오래된 사진 복원 사이트",
+     "오래된 사진 복원 프로그램",
+     "포토샵 오래된 사진 복원"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "老照片修复",
+    "suggestions": [
+     "老照片修复",
+     "老照片修复提示词",
+     "老照片修复软件",
+     "老照片修复ai",
+     "老照片修复在线",
+     "老照片修复线上免费",
+     "老照片修复神器",
+     "老照片修复线上",
+     "老照片修复app推荐",
+     "老照片修复费用",
+     "老照片修复app"
+    ],
+    "error": null
+   }
+  },
+  "colorize": {
+   "en": {
+    "query": "colorize black and white photo",
+    "suggestions": [
+     "colorize black and white photos",
+     "colorize black and white photos free",
+     "colorize black and white photos photoshop",
+     "colorize black and white photos online",
+     "colorize black and white photos ai",
+     "colorize black and white photos no ai",
+     "colorize black and white photos free app",
+     "colorize black and white photos free no sign up",
+     "colorize black and white photo prompt",
+     "colorize black and white photos samsung",
+     "colorize black and white photo free",
+     "colorize black and white photo online free",
+     "colorize black and white photo photoshop",
+     "colorize black and white photo online",
+     "colorize black and white photo",
+     "colorize black and white photo ai",
+     "colorize black and white photo ai free",
+     "colorize black and white photo app",
+     "colorize black and white photo lightroom"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "colorear fotos antiguas",
+    "suggestions": [
+     "colorear fotos antiguas",
+     "colorear fotos antiguas gratis",
+     "colorear fotos antiguas online gratis",
+     "colorear fotos antiguas con ia gratis",
+     "colorear fotos antiguas online",
+     "colorear fotos antiguas con ia",
+     "colorear fotos antiguas en blanco y negro",
+     "colorear fotos antiguas photoshop",
+     "colorear fotos antiguas con gemini",
+     "colorear fotos antiguas en blanco y negro en línea gratis",
+     "colorear fotos antiguas con inteligencia artificial",
+     "colorear fotos antiguas gratis sin registrarse",
+     "colorear fotos antiguas con gimp",
+     "app colorear fotos antiguas"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "colorir fotos antigas",
+    "suggestions": [
+     "colorir fotos antigas online grátis",
+     "colorir fotos antigas",
+     "colorir fotos antigas com ia gratuito",
+     "colorir fotos antigas grátis",
+     "colorir fotos antigas online",
+     "colorir fotos antigas ia",
+     "colorir fotos antigas ai",
+     "colorir fotos antigas app",
+     "colorir fotos antigas preto e branco",
+     "colorir fotos antigas photoshop"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "mewarnai foto lama",
+    "suggestions": [
+     "mewarnai foto lama",
+     "mewarnai foto lama online",
+     "cara mewarnai foto lama",
+     "aplikasi mewarnai foto lama"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "tô màu ảnh đen trắng",
+    "suggestions": [
+     "tô màu ảnh đen trắng bằng ai",
+     "tô màu ảnh đen trắng",
+     "tô màu ảnh đen trắng online",
+     "tô màu ảnh đen trắng bằng photoshop",
+     "app tô màu ảnh đen trắng",
+     "ai tô màu ảnh trắng đen",
+     "phần mềm tô màu ảnh đen trắng",
+     "hình ảnh tô màu trắng đen"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "раскрасить чб фото",
+    "suggestions": [
+     "раскрасить чб фото",
+     "раскрасить чб фото онлайн",
+     "раскрасить чб фото онлайн бесплатно",
+     "раскрасить чб фото нейросеть",
+     "раскрасить чб фото приложение",
+     "раскрасить чб фото в цвет",
+     "раскрасить чб фото mail",
+     "раскрасить старое чб фото",
+     "раскрасить чб фото в фотошопе",
+     "раскрасить чб фото бесплатно",
+     "раскрасить чб фото онлайн нейросеть",
+     "раскрасить чб фото ai"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "モノクロ 写真 色付け",
+    "suggestions": [
+     "モノクロ 写真 色付け"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "흑백 사진 색칠",
+    "suggestions": [],
+    "error": null
+   },
+   "zh": {
+    "query": "黑白照片上色",
+    "suggestions": [
+     "黑白照片上色",
+     "黑白照片上色 ai",
+     "photoshop 黑白照片上色"
+    ],
+    "error": null
+   }
+  },
+  "passport-photo": {
+   "en": {
+    "query": "passport photo online",
+    "suggestions": [
+     "passport photo online",
+     "passport photo online free",
+     "passport photo online reviews",
+     "passport photo online tool",
+     "passport photo online reddit",
+     "passport photo online cost",
+     "passport photo online requirements",
+     "passport photo online renewal",
+     "passport photo online legit",
+     "passport photo online free download",
+     "passport photo online editor"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "foto carnet online",
+    "suggestions": [
+     "foto carnet online gratis",
+     "foto carnet online",
+     "foto carnet online gratis fondo blanco",
+     "foto carnet online 4x4",
+     "foto carnet online con nombre y rut",
+     "foto carnet online con nombre y rut gratis",
+     "foto carnet online para imprimir",
+     "foto carnet online chile",
+     "foto carnet online peru",
+     "foto carnet online gratis fondo azul"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "foto 3x4 online",
+    "suggestions": [
+     "foto 3x4 online",
+     "foto 3x4 online grátis",
+     "foto 3x4 online fundo branco grátis",
+     "foto 3x4 online grátis sem marca d'água",
+     "foto 3x4 online fundo branco",
+     "foto 3x4 online para imprimir",
+     "foto 3x4 online como fazer",
+     "foto 3x4 online grátis canva",
+     "foto 3x4 online passaporte",
+     "foto 3x4 online jpg",
+     "foto 3x4 online grátis passaporte"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "pas foto online",
+    "suggestions": [
+     "pas foto online",
+     "pas foto online gratis",
+     "pas foto online indonesia",
+     "pas foto online 3x4",
+     "pas foto online latar merah",
+     "pas foto online ai",
+     "pas foto online latar biru",
+     "pas foto online jas",
+     "pas foto online 2x3",
+     "pas foto online editor"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "ảnh thẻ online",
+    "suggestions": [
+     "ảnh thẻ online",
+     "ảnh thẻ online free",
+     "ảnh thẻ online ai",
+     "tạo ảnh thẻ online",
+     "tạo ảnh thẻ online free",
+     "chỉnh ảnh thẻ online",
+     "chụp ảnh thẻ online",
+     "ghép ảnh thẻ online",
+     "tạo ảnh thẻ online ai",
+     "sửa ảnh thẻ online"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "фото на документы онлайн",
+    "suggestions": [
+     "фото на документы онлайн",
+     "фото на документы онлайн бесплатно",
+     "фото на документы онлайн 3 на 4",
+     "фото на документы онлайн редактор",
+     "фото на документы онлайн редактор бесплатно",
+     "фото на документы онлайн нейросеть",
+     "фото на документы онлайн бесплатно 3 на 4",
+     "фото на документы онлайн белый фон",
+     "фото на документы онлайн с уголком",
+     "фото на документы онлайн белый фон бесплатно",
+     "фото на документы онлайн ии"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "証明写真 作成",
+    "suggestions": [
+     "証明写真 作成",
+     "証明写真 作成 アプリ",
+     "証明写真 作成 サイト",
+     "証明写真 作成 無料",
+     "証明写真 作成 ソフト",
+     "証明写真 作成 サイト 無料",
+     "証明写真 作成 背景",
+     "証明写真 作成 web",
+     "証明写真 作成 ブラウザ"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "증명사진 만들기",
+    "suggestions": [
+     "증명사진 만들기",
+     "증명사진 만들기 ai",
+     "증명사진 만들기 무료 사이트",
+     "증명사진 만들기 사이트",
+     "증명사진 만들기 어플",
+     "증명사진 만들기 프롬프트",
+     "증명사진 만들기 무료",
+     "증명사진 만들기 ai 무료",
+     "증명사진 만들기 프로그램",
+     "증명사진 만들기 디시"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "证件照制作",
+    "suggestions": [
+     "证件照制作",
+     "证件照制作免费",
+     "证件照制作在线免费",
+     "证件照制作软件",
+     "证件照制作 线上",
+     "证件照制作软体",
+     "证件照制作app",
+     "证件照制作快捷指令",
+     "证件照制作网站",
+     "证件照制作在线",
+     "证件照制作工具"
+    ],
+    "error": null
+   }
+  },
+  "product-photo": {
+   "en": {
+    "query": "product photo white background",
+    "suggestions": [
+     "product photo white background",
+     "product photo white background ai",
+     "product image white background",
+     "product picture white background",
+     "product photo white backdrop",
+     "take product pictures white background",
+     "how to take product photo with white background",
+     "how to make product photos with white background"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "foto de producto fondo blanco",
+    "suggestions": [
+     "foto de producto fondo blanco",
+     "fondo blanco para foto de producto"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "foto de produto fundo branco",
+    "suggestions": [
+     "foto de produto fundo branco",
+     "como tirar foto de produto com fundo branco",
+     "fundo branco para foto de produto",
+     "fundo branco para tirar foto de produto",
+     "foto de produto fundo infinito"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "foto produk background putih",
+    "suggestions": [
+     "foto produk background putih",
+     "edit foto produk background putih",
+     "contoh foto produk background putih",
+     "foto produk makanan background putih",
+     "cara foto produk background putih"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "ảnh sản phẩm nền trắng",
+    "suggestions": [
+     "ảnh sản phẩm nền trắng",
+     "chụp ảnh sản phẩm nền trắng",
+     "giá chụp ảnh sản phẩm nền trắng",
+     "app chụp ảnh sản phẩm nền trắng",
+     "cách chụp ảnh sản phẩm nền trắng",
+     "phông nền trắng chụp ảnh sản phẩm"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "фото товара без фона",
+    "suggestions": [
+     "фото товара без фона"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "商品 写真 背景 透過",
+    "suggestions": [],
+    "error": null
+   },
+   "ko": {
+    "query": "제품 사진 배경 제거",
+    "suggestions": [],
+    "error": null
+   },
+   "zh": {
+    "query": "商品图白底",
+    "suggestions": [],
+    "error": null
+   }
+  },
+  "ai-headshot": {
+   "en": {
+    "query": "ai headshot generator",
+    "suggestions": [
+     "ai headshot generator",
+     "ai headshot generator free",
+     "ai headshot generator reddit",
+     "ai headshot generator for linkedin",
+     "ai headshot generator free reddit",
+     "ai headshot generator chatgpt",
+     "ai headshot generator reviews",
+     "ai headshot generator canva",
+     "ai headshot generator kiwi",
+     "ai headshot generator free no sign up",
+     "ai headshot generator best"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "foto de perfil profesional ia",
+    "suggestions": [
+     "foto de perfil profesional ia",
+     "foto de perfil profesional ia gratis",
+     "crear foto de perfil profesional ia",
+     "crear foto de perfil profesional con ia gratis",
+     "mejorar foto de perfil profesional con ia",
+     "ia para foto de perfil profesional gratis",
+     "ia para crear foto de perfil profesional"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "foto profissional ia",
+    "suggestions": [
+     "foto profissional ia",
+     "foto profissional ia gratuito",
+     "foto profissional ia prompt",
+     "foto profissional ia masculino",
+     "foto profissional ia gemini",
+     "foto profissional ia gratuito online",
+     "foto profissional ia canva",
+     "foto profissional ia grátis gemini",
+     "foto profissional ia texto",
+     "foto profissional ia online"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "foto profil profesional ai",
+    "suggestions": [
+     "foto profil profesional ai",
+     "foto profil profesional ai gratis",
+     "prompt ai foto profil profesional",
+     "cara membuat foto profil profesional dengan ai",
+     "ai untuk foto profil profesional"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "ảnh chân dung ai",
+    "suggestions": [
+     "ảnh chân dung ai",
+     "ảnh chân dung ai nam",
+     "ảnh chân dung ai đẹp",
+     "ảnh chân dung ai nền đỏ",
+     "ảnh chân dung ai tạo",
+     "tạo ảnh chân dung ai miễn phí",
+     "tạo ảnh chân dung ai online",
+     "chỉnh ảnh chân dung ai",
+     "ghép ảnh chân dung ai",
+     "tạo ảnh chân dung ai gemini"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "деловой портрет нейросеть",
+    "suggestions": [],
+    "error": null
+   },
+   "ja": {
+    "query": "ai 証明写真",
+    "suggestions": [
+     "ai 証明写真",
+     "ai 証明写真 プロンプト",
+     "ai 証明写真 加工",
+     "ai 証明写真 スーツ",
+     "ai 証明写真 バレる",
+     "ai 証明写真 アプリ",
+     "ai 証明写真 パスポート"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "ai 증명사진",
+    "suggestions": [
+     "ai 증명사진",
+     "ai 증명사진 프롬프트",
+     "ai 증명사진 만들기",
+     "ai 증명사진 디시",
+     "ai 증명사진 프롬프트 디시",
+     "ai 증명사진 민증 디시",
+     "ai 증명사진 이력서",
+     "ai 증명사진 이력서 디시",
+     "ai 증명사진 어플",
+     "ai 증명사진 민증",
+     "ai 증명사진 만들기 프롬프트"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "ai证件照",
+    "suggestions": [
+     "ai证件照",
+     "ai证件照提示词",
+     "ai证件照生成",
+     "ai 证件 照 dcard",
+     "ai证件照 可以用吗",
+     "ai 证件 照 线上",
+     "ai 证件照 护照",
+     "ai 证件 照 生成 指令",
+     "ai证件照指令",
+     "ai证件照 护照",
+     "ai证件照 指令"
+    ],
+    "error": null
+   }
+  },
+  "ai-poster": {
+   "en": {
+    "query": "ai poster generator",
+    "suggestions": [
+     "ai poster generator",
+     "ai poster generator free",
+     "ai poster generator with photos",
+     "ai poster generator free no sign up",
+     "ai poster generator canva",
+     "ai poster generator no login",
+     "ai poster generator free online",
+     "ai poster generator from text free",
+     "ai poster generator free with prompt",
+     "ai poster generator free without login",
+     "ai poster generator chatgpt"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "crear posters con ia",
+    "suggestions": [
+     "crear posters con ia",
+     "crear posters con ia gratis",
+     "paginas para crear posters con ia",
+     "aplicaciones para crear posters con ia",
+     "crear posters de peliculas con ia"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "criar poster com ia",
+    "suggestions": [
+     "criar poster com ia",
+     "criar poster com ia gratuito",
+     "criar poster de filme com ia",
+     "criar poster cientifico com ia"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "buat poster ai",
+    "suggestions": [
+     "buat poster ai",
+     "buat poster ai gratis",
+     "buat poster ai online",
+     "buat poster ai canva",
+     "buat poster ai dimana",
+     "buat poster air",
+     "buat poster ai gemini",
+     "buat poster ai online gratis",
+     "cara buat poster ai",
+     "cara buat poster ai di canva",
+     "buat poster guna ai",
+     "prompt ai buat poster",
+     "buat poster dengan ai gratis"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "tạo poster ai",
+    "suggestions": [
+     "tạo poster ai",
+     "tạo poster ai miễn phí",
+     "tạo poster ai canva",
+     "tạo poster ai online",
+     "tạo poster ai free",
+     "tạo poster bằng ai",
+     "tạo poster với ai",
+     "tạo poster bằng ai trên canva",
+     "cách tạo poster ai",
+     "tạo ảnh poster ai"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "создать постер нейросеть",
+    "suggestions": [
+     "создать постер нейросеть онлайн бесплатно",
+     "создать постер нейросеть",
+     "создать постер нейросеть онлайн"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "ai ポスター 作成",
+    "suggestions": [
+     "ai ポスター 作成",
+     "ai ポスター 作成 プロンプト",
+     "ai ポスター 作成 gemini",
+     "ai ポスター 作成 無料",
+     "ai ポスター 作成 アプリ",
+     "ai ポスター 作成 おすすめ",
+     "ai ポスター 作成 canva",
+     "ai ポスター 作成 方法",
+     "ai ポスター作成 コツ",
+     "ai ポスター 作成 ツール"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "ai 포스터 제작",
+    "suggestions": [
+     "ai 포스터 제작",
+     "ai 포스터 제작 사이트",
+     "ai 포스터 제작 프롬프트",
+     "ai 포스터 제작 무료",
+     "ai 포스터 제작 디시",
+     "ai 홍보 포스터 제작",
+     "생성형 ai 포스터 제작",
+     "미리캔버스 ai 포스터 제작",
+     "포스터 제작 ai 추천",
+     "학회 포스터 제작 ai"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "ai海报生成",
+    "suggestions": [
+     "ai海报生成",
+     "ai 海报 生成 app",
+     "ai 海报 生成 器",
+     "ai海报生成推荐",
+     "ai 海报 生成 免费",
+     "ai海报生成指令"
+    ],
+    "error": null
+   }
+  },
+  "interior-design": {
+   "en": {
+    "query": "ai interior design",
+    "suggestions": [
+     "ai interior design",
+     "ai interior design free",
+     "ai interior design app",
+     "ai interior design generator",
+     "ai interior design tools",
+     "ai interior design app free",
+     "ai interior design help",
+     "ai interior design free online",
+     "ai interior design from floor plan",
+     "ai interior design software",
+     "ai interior design prompts"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "decorar habitacion con ia",
+    "suggestions": [
+     "decorar habitacion con ia",
+     "decorar habitacion con ia gratis online",
+     "decorar habitación con ia gratis",
+     "decorar mi habitacion con ia",
+     "decorar habitacion ia online"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "decorar sala com ia",
+    "suggestions": [
+     "decorar sala com ia",
+     "decorar sala com ia gratuito",
+     "decorar minha sala com ia",
+     "decorar sala de estar aí",
+     "como decorar uma sala pequena com ia",
+     "decorar sala con ia gratis"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "desain kamar ai",
+    "suggestions": [
+     "desain kamar ai",
+     "desain rumah ai gratis",
+     "desain kamar tidur ai",
+     "desain kamar dengan ai",
+     "desain kamar mandi ai",
+     "aplikasi desain kamar ai",
+     "desain interior kamar ai",
+     "desain kamar 3x3 ai",
+     "desain pembuangan air kamar mandi",
+     "desain kamar tidur minimalis ai",
+     "cara desain kamar pakai ai"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "thiết kế nội thất ai",
+    "suggestions": [
+     "thiết kế nội thất ai",
+     "thiết kế nội thất ai online",
+     "thiết kế nội thất ai miễn phí",
+     "thiết kế nội thất airbnb",
+     "thiết kế nội thất bằng ai",
+     "app thiết kế nội thất ai",
+     "thiết kế nội thất bằng ai free",
+     "thiết kế nội thất với ai",
+     "app thiết kế nội thất ai free",
+     "web thiết kế nội thất ai",
+     "thiết kế nội thất dùng ai nào"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "дизайн интерьера нейросеть",
+    "suggestions": [
+     "дизайн интерьера нейросеть",
+     "дизайн интерьера нейросеть бесплатно",
+     "дизайн интерьера нейросеть онлайн",
+     "дизайн интерьера 3d нейросеть",
+     "дизайн интерьера по фото нейросеть",
+     "нейросеть дизайн интерьера онлайн бесплатно",
+     "нейросеть дизайн интерьера онлайн по фото",
+     "нейросеть дизайн интерьера по планировке квартиры",
+     "нейросеть дизайн интерьера по планировке квартиры бесплатно",
+     "нейросеть дизайн интерьера онлайн бесплатно на русском"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "ai 理想の部屋",
+    "suggestions": [
+     "ai 理想の部屋"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "ai 인테리어 디자인",
+    "suggestions": [
+     "ai 인테리어 디자인",
+     "ai 로 인테리어 디자인",
+     "인테리어 디자인 ai 추천",
+     "인테리어 디자인 ai 대체"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "ai室内设计",
+    "suggestions": [
+     "ai室内设计",
+     "ai 室内 设计 软件",
+     "ai室内设计大师",
+     "ai 室内 设计 平面图",
+     "ai室内设计软体",
+     "ai室内设计生成",
+     "ai 室内设计图",
+     "ai 室内设计图生成",
+     "ai 室内 设计 ptt",
+     "ai室内设计黑科技",
+     "ai 室内设计课程"
+    ],
+    "error": null
+   }
+  },
+  "ai-avatar": {
+   "en": {
+    "query": "ai avatar generator",
+    "suggestions": [
+     "ai avatar generator",
+     "ai avatar generator free",
+     "ai avatar generator from photo",
+     "ai avatar generator online free",
+     "ai avatar generator from photo free",
+     "ai avatar generator free without login",
+     "ai avatar generator open source",
+     "ai avatar generator of yourself",
+     "ai avatar generator free video",
+     "ai avatar generator video",
+     "ai avatar generator from text"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "crear avatar ia",
+    "suggestions": [
+     "crear avatar ia",
+     "crear avatar ia gratis",
+     "crear avatar ia para onlyfans",
+     "crear avatar ia para videos",
+     "crear avatar ia que habla",
+     "crear avatar ai con foto",
+     "crear avatar ia capcut",
+     "crear avatar realista ai",
+     "crear avatar ia canva",
+     "crear avatar con ia online gratis",
+     "crear avatar ai"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "criar avatar ia",
+    "suggestions": [
+     "criar avatar ia",
+     "criar avatar ia online grátis",
+     "criar avatar ia gratuito",
+     "criar avatar ia gratis",
+     "criar avatar ia falante",
+     "criar avatar ia com minha foto",
+     "criar avatar ia com foto",
+     "criar avatar ia video",
+     "criar avatar ia realista",
+     "criar avatar ia a partir de foto"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "buat avatar ai",
+    "suggestions": [
+     "buat avatar ai",
+     "buat avatar ai gratis",
+     "buat avatar ai online gratis",
+     "buat avatar ai dari foto",
+     "buat avatar ai online",
+     "buat video avatar ai",
+     "cara buat avatar ai gratis",
+     "buat video avatar ai gratis",
+     "cara buat avatar ai",
+     "cara buat avatar ai di tiktok"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "tạo avatar ai",
+    "suggestions": [
+     "tạo avatar ai",
+     "tạo avatar ai miễn phí",
+     "tạo avatar ai từ ảnh thật",
+     "tạo avatar ai facebook",
+     "tạo avatar ai chụp studio nền đỏ",
+     "tạo avatar ai nói chuyện",
+     "tạo avatar ai nền đỏ",
+     "tạo avatar ai nghề nghiệp",
+     "tạo avatar ai zalo",
+     "tạo avatar ai online"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "аватар нейросеть",
+    "suggestions": [
+     "аватар нейросеть онлайн",
+     "аватар нейросеть онлайн бесплатно",
+     "аватар нейросеть",
+     "image нейросеть",
+     "character нейросеть",
+     "picture нейросеть",
+     "photo нейросеть",
+     "нейросеть аватар видео",
+     "нейросеть аватарка бесплатно",
+     "нейросеть аватар из фото"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "ai アバター 作成",
+    "suggestions": [
+     "ai アバター 作成",
+     "ai アバター 作成 無料",
+     "ai アバター 作成 方法",
+     "ai アバター 作成 アプリ",
+     "ai アバター 作成 ツール",
+     "ai アバター 作成 サイト",
+     "ai アバター 作成 アプリ 無料",
+     "ai アバター 作成 会話",
+     "ai アバター 作成 費用",
+     "生成 ai アバター 作成"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "ai 프로필 사진",
+    "suggestions": [
+     "ai 프로필 사진",
+     "ai 프로필 사진 프롬프트",
+     "ai 프로필 사진 만들기",
+     "ai 프로필 사진 만들기 사이트",
+     "ai 프로필 사진 디시",
+     "ai 프로필 사진 만들기 프롬프트",
+     "ai 프로필 사진 프롬프트 디시",
+     "ai 프로필 사진 프롬포트",
+     "ai 프로필 사진 생성",
+     "ai 프로필 사진 무료"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "ai头像生成",
+    "suggestions": [
+     "ai头像生成",
+     "ai 头像 生成 线上"
+    ],
+    "error": null
+   }
+  },
+  "ai-theme-photo": {
+   "en": {
+    "query": "ai photo generator",
+    "suggestions": [
+     "ai photo generator",
+     "ai photo generator free",
+     "ai photo generator no restrictions",
+     "ai photo generator app",
+     "ai photo generator from image",
+     "ai photo generator gemini",
+     "ai photo generator google",
+     "ai photo generator free no restrictions",
+     "ai photo generator no sign up",
+     "ai photo generator no limits",
+     "ai photo generator gpt"
+    ],
+    "error": null
+   },
+   "es": {
+    "query": "editar foto con ia",
+    "suggestions": [
+     "editar foto con ia",
+     "editar foto con ia gratis",
+     "editar foto con ia gemini",
+     "editar foto con ia gratis online",
+     "editar foto con ia online",
+     "editar foto con ia sin censura",
+     "editar foto con ia chatgpt",
+     "editar foto con ia iphone",
+     "editar foto con ia gemini gratis",
+     "editar foto con ia gratis sin registro",
+     "editar foto con ia sin censura gratis"
+    ],
+    "error": null
+   },
+   "pt": {
+    "query": "editar foto com ia",
+    "suggestions": [
+     "editar foto com ia",
+     "editar foto com ia gratuito",
+     "editar foto com ia online",
+     "editar foto com ia gemini",
+     "editar foto com ia online grátis",
+     "editar foto com ia chatgpt",
+     "editar foto com ia no iphone",
+     "editar foto com ia prompt",
+     "editar foto com ia no canva",
+     "editar foto com ia google",
+     "editar foto com ia samsung"
+    ],
+    "error": null
+   },
+   "id": {
+    "query": "edit foto ai tema",
+    "suggestions": [
+     "edit foto ai tema kemerdekaan",
+     "edit foto ai tema kemerdekaan indonesia",
+     "edit foto ai tema ulang tahun",
+     "edit foto ai tema lebaran",
+     "edit foto ai tema natal",
+     "edit foto ai tema mafia",
+     "tema edit foto ai",
+     "edit foto gemini ai bersama teman"
+    ],
+    "error": null
+   },
+   "vi": {
+    "query": "tạo ảnh ai theo chủ đề",
+    "suggestions": [
+     "tạo ảnh ai theo chủ đề"
+    ],
+    "error": null
+   },
+   "ru": {
+    "query": "нейросеть фото редактор онлайн",
+    "suggestions": [
+     "нейросеть фото редактор онлайн",
+     "нейросеть редактор фото онлайн бесплатно",
+     "нейросеть редактор фото по описанию онлайн"
+    ],
+    "error": null
+   },
+   "ja": {
+    "query": "ai 写真 加工",
+    "suggestions": [
+     "ai 写真 加工",
+     "ai 写真 加工 プロンプト",
+     "ai 写真 加工 無料",
+     "ai 写真 加工 アプリ 無料",
+     "ai 写真 加工 google",
+     "ai 写真 加工 iphone",
+     "ai 写真 加工 ライン"
+    ],
+    "error": null
+   },
+   "ko": {
+    "query": "ai 사진 편집",
+    "suggestions": [
+     "ai 사진 편집",
+     "ai 사진 편집 무료",
+     "ai 사진 편집 사이트",
+     "ai 사진 편집기",
+     "ai 사진 편집 디시",
+     "ai 사진 편집 프로그램",
+     "ai 사진 편집 어플",
+     "ai 사진 편집 프롬프트",
+     "ai 사진 편집기 무료",
+     "ai 사진 편집 추천",
+     "ai 사진 편집 툴",
+     "ai 사진 편집 사이트 디시"
+    ],
+    "error": null
+   },
+   "zh": {
+    "query": "照片生成特效",
+    "suggestions": [],
+    "error": null
+   }
+  }
+ }
+}
