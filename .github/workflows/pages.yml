@@ -1,0 +1,49 @@
+name: Build content site
+
+# Tier A only: dist/site/ is published to GitHub Pages. Platform drafts, the deck
+# and the video script stay in dist/ inside the runner — they are tier B and only
+# ever move once a human has approved them.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pandoc (optional — only used for deck.pptx)
+        run: command -v pandoc || (sudo apt-get update -qq && sudo apt-get install -y pandoc)
+      - name: Compile every topic
+        run: node bin/content.mjs build --all
+      - name: Run the test suite
+        run: node tests/run.mjs
+      - name: Summarise the artifacts
+        run: node bin/content.mjs publish
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
