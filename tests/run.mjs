@@ -2,6 +2,7 @@
 // Covers the three from-scratch parsers and then compiles the real topics
 // end to end into a throwaway directory, asserting the artifacts on disk.
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,8 +12,17 @@ import { build, loadConfig } from '../src/build.mjs';
 import { extractHeadings, renderMarkdown, toPlainText } from '../src/markdown.mjs';
 import { renderTemplate } from '../src/template.mjs';
 import { parseYaml } from '../src/yaml.mjs';
+import { verifyAll, verifyTopic } from '../src/verify.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/** Stands in for a real source page in the verify tests below. */
+const SERVED_BODY = [
+  'Specification sheet.',
+  'The catalogue entry states that the model is released under the Apache License',
+  'and ships 1.7B parameters at a 5.9 GB footprint.',
+].join(' ');
+
 let failures = 0;
 
 function test(name, fn) {
@@ -195,6 +205,119 @@ test('build: compiles every topic into tier A + tier B artifacts on disk', () =>
 
   fs.rmSync(outDir, { recursive: true, force: true });
 });
+
+// --- verify (the publish gate) ----------------------------------------------
+// These run against a local server rather than the real sources: the machine's
+// route to the outside is intermittent, and a gate whose tests depend on the
+// network is a gate nobody can trust.
+//
+// The server runs in its own process on purpose. The verifier fetches with
+// execFileSync, which blocks this process's event loop — an in-process server
+// could never answer it, and every fetch would time out.
+const PORT_FILE = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'content-verify-')), 'port');
+const SERVER_SOURCE = `
+const http = require('http');
+const fs = require('fs');
+const body = ${JSON.stringify(SERVED_BODY)};
+http.createServer((_req, res) => {
+  res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
+  res.end(body);
+}).listen(0, '127.0.0.1', function () { fs.writeFileSync(process.argv[1], String(this.address().port)); });
+`;
+const serverProc = spawn(process.execPath, ['-e', SERVER_SOURCE, PORT_FILE], { stdio: 'ignore' });
+for (let i = 0; i < 100 && !fs.existsSync(PORT_FILE); i += 1) await new Promise((r) => setTimeout(r, 50));
+assert.ok(fs.existsSync(PORT_FILE), 'fixture server never reported a port');
+const PORT = Number(fs.readFileSync(PORT_FILE, 'utf8'));
+const BASE = `http://127.0.0.1:${PORT}/spec`;
+const CLOSED = 'http://127.0.0.1:1/gone';
+
+function makeFixture(dir, claims, extra = {}) {
+  fs.mkdirSync(path.join(dir, 'topics/fixture'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'topics/fixture/source.yaml'), ['slug: fixture', 'title: "fixture topic"', 'kind: research', 'date: 2026-09-21', 'summary: "fixture"', ''].join('\n'));
+  fs.writeFileSync(path.join(dir, 'topics/fixture/cta.yaml'), 'label: "试试"\nurl: https://example.com\n');
+  fs.writeFileSync(path.join(dir, 'topics/fixture/evidence.json'), JSON.stringify({ topic: 'fixture', checked_at: '2026-09-21', claims, ...extra }, null, 1));
+  return dir;
+}
+
+const FIXTURE = path.dirname(PORT_FILE);
+const goodClaim = {
+  id: 'license',
+  claim: '该条目写明模型以 Apache 许可发布。',
+  source: BASE,
+  quote: 'released under the Apache License',
+  verified: true,
+};
+
+test('verify: accepts a topic whose claims are structurally sound', () => {
+  const dir = makeFixture(path.join(FIXTURE, 'ok'), [goodClaim]);
+  const report = verifyTopic(dir, 'fixture', { topicsDir: 'topics' });
+  assert.equal(report.ok, true, report.problems.join('; '));
+  assert.equal(report.checked, 1);
+});
+
+test('verify: refuses a claim with no quote', () => {
+  const dir = makeFixture(path.join(FIXTURE, 'noquote'), [{ id: 'x', claim: '这是一条没有引文的断言。', source: BASE }]);
+  const report = verifyTopic(dir, 'fixture', { topicsDir: 'topics' });
+  assert.equal(report.ok, false);
+  assert.match(report.problems.join(' '), /no "quote"/);
+});
+
+test('verify: refuses a missing cta.yaml — a topic with no conversion endpoint', () => {
+  const dir = makeFixture(path.join(FIXTURE, 'nocta'), [goodClaim]);
+  fs.rmSync(path.join(dir, 'topics/fixture/cta.yaml'));
+  const report = verifyTopic(dir, 'fixture', { topicsDir: 'topics' });
+  assert.equal(report.ok, false);
+  assert.match(report.problems.join(' '), /cta\.yaml is missing/);
+});
+
+test('verify: refuses a duplicate claim id', () => {
+  const dir = makeFixture(path.join(FIXTURE, 'dup'), [goodClaim, { ...goodClaim }]);
+  const report = verifyTopic(dir, 'fixture', { topicsDir: 'topics' });
+  assert.equal(report.ok, false);
+  assert.match(report.problems.join(' '), /duplicate id/);
+});
+
+test('verify --online: confirms a quote that really is in the source', () => {
+  const dir = makeFixture(path.join(FIXTURE, 'verbatim'), [goodClaim]);
+  const report = verifyTopic(dir, 'fixture', { topicsDir: 'topics', online: true });
+  assert.equal(report.verbatim, 1, `statuses: ${JSON.stringify(report.verbatimOf)}`);
+  assert.equal(report.ok, true, report.problems.join('; '));
+});
+
+test('verify --online: catches a quote that is not in the source', () => {
+  const dir = makeFixture(path.join(FIXTURE, 'mismatch'), [{ ...goodClaim, id: 'invented', quote: 'this sentence appears nowhere in the served document' }]);
+  const report = verifyTopic(dir, 'fixture', { topicsDir: 'topics', online: true });
+  assert.equal(report.mismatched, 1);
+  assert.equal(report.ok, false);
+  assert.match(report.problems.join(' '), /quote not found/);
+});
+
+test('verify --online: reports an unreachable source instead of passing it', () => {
+  const dead = { ...goodClaim, id: 'dead', source: CLOSED };
+  const dir = makeFixture(path.join(FIXTURE, 'unreachable'), [dead]);
+  const report = verifyTopic(dir, 'fixture', { topicsDir: 'topics', online: true, retries: 0, timeout: 5 });
+  assert.equal(report.unreachable, 1);
+  assert.equal(report.verbatim, 0);
+  assert.equal(report.ok, true, 'an unreachable source is a warning by default, never a silent pass');
+  assert.match(report.warnings.join(' '), /unreachable/);
+});
+
+test('verify --online --strict: an unreachable source fails the gate (for CI)', () => {
+  const dead = { ...goodClaim, id: 'dead', source: CLOSED };
+  const dir = makeFixture(path.join(FIXTURE, 'strict'), [dead]);
+  const report = verifyTopic(dir, 'fixture', { topicsDir: 'topics', online: true, strict: true, retries: 0, timeout: 5 });
+  assert.equal(report.ok, false);
+  assert.match(report.problems.join(' '), /unreachable/);
+});
+
+test('verify: the real topics pass the gate offline', () => {
+  const { reports, ok } = verifyAll(ROOT, { topicsDir: 'topics' });
+  assert.ok(reports.length >= 1);
+  assert.equal(ok, true, JSON.stringify(reports.flatMap((r) => r.problems)));
+});
+
+serverProc.kill();
+fs.rmSync(FIXTURE, { recursive: true, force: true });
 
 console.log(failures ? `\n${failures} test(s) failed` : `\nall tests passed`);
 process.exitCode = failures ? 1 : 0;

@@ -32,6 +32,11 @@ jobs:
         run: node bin/content.mjs build --all
       - name: Run the test suite
         run: node tests/run.mjs
+      - name: Verify the evidence behind every claim
+        # The structural gate only: it needs no network, so a flaky source host can
+        # never block a deploy. Run `content verify --online --strict` by hand when
+        # you want the quotes re-checked verbatim against their sources.
+        run: node bin/content.mjs verify
       - name: Summarise the artifacts
         run: node bin/content.mjs publish
       - uses: actions/upload-pages-artifact@v3

@@ -13,6 +13,7 @@ import { build, loadConfig, scaffoldTopic } from '../src/build.mjs';
 import { gitPublish, publishReport, readManifest } from '../src/publish.mjs';
 import { serve } from '../src/serve.mjs';
 import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
+import { verifyAll } from '../src/verify.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -35,6 +36,7 @@ const HELP = `content — GitHub-first content engine
 
 用法:
   content build [slug...] [--all] [--site-only] [--out <dir>]
+  content verify [slug...] [--online] [--strict]
   content publish [--git] [--dry-run]
   content new <slug> [--title "..."] [--date YYYY-MM-DD]
   content list
@@ -45,6 +47,11 @@ const HELP = `content — GitHub-first content engine
   topics/<slug>/ 是唯一内容源；dist/ 全部由 content build 生成，不手改。
   Tier A 产物（网站/GitHub/Hugging Face/RSS）可全自动发布；
   Tier B 产物（小红书/Reddit/X/知乎/PPT/视频脚本）一律停在草稿等人工确认。
+
+  content verify 是发布前的质量闸门：每条 claim 必须带一段能在它自己的
+  source 里逐字找到的 quote。默认只做不需要联网的结构检查；加 --online
+  才回源逐字核对（本机到源站的路由时好时坏，取不到的源报 unreachable，
+  不会被当成通过）；CI 里用 --online --strict 让取不到也失败。
 `;
 
 async function main() {
@@ -67,6 +74,34 @@ async function main() {
       console.log(`\n构建完成：${manifest.topics.length} 个主题，Tier A ${tierA} 个 / Tier B ${tierB} 个产物`);
       for (const note of manifest.notes) console.log(`  · ${note}`);
       console.log(`输出目录：${path.relative(ROOT, path.join(ROOT, flags.out ?? config.paths.out))}/`);
+      break;
+    }
+    case 'verify': {
+      const online = Boolean(flags.online);
+      const strict = Boolean(flags.strict);
+      const { reports, ok } = verifyAll(ROOT, {
+        topicsDir: config.paths.topics,
+        slugs: rest.length ? rest : undefined,
+        online,
+        strict,
+        log: (line) => console.log(line),
+      });
+      for (const report of reports) {
+        const mark = report.ok ? '✓' : '✗';
+        const bits = [`${report.checked} 条 claim`];
+        if (online) {
+          bits.push(`逐字命中 ${report.verbatim}`, `对不上 ${report.mismatched}`);
+          if (report.unreachable) bits.push(`取不到 ${report.unreachable}`);
+        }
+        console.log(`${mark} ${report.slug.padEnd(24)} ${bits.join('  ')}`);
+        for (const problem of report.problems) console.log(`    问题：${problem}`);
+        for (const warning of report.warnings) console.log(`    注意：${warning}`);
+      }
+      console.log('');
+      console.log(ok
+        ? `闸门通过：${reports.length} 个主题${online ? '（已回源逐字核对）' : '（仅结构检查，未回源）'}`
+        : `闸门未通过：${reports.filter((r) => !r.ok).length}/${reports.length} 个主题有问题`);
+      if (!ok) process.exitCode = 1;
       break;
     }
     case 'publish': {
