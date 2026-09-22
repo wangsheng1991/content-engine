@@ -17,7 +17,9 @@ import {
   chromePath,
   coverOf,
   coverCardHtml,
+  defaultBackend,
   englishCoverOf,
+  imageSizeOf,
   missingAssets,
   planImages,
   renderImages,
@@ -843,6 +845,32 @@ const TINY_PNG = Buffer.from(
   'base64',
 );
 
+/**
+ * A JPEG that carries only the segments `imageSizeOf` reads: SOI, a JFIF APP0 and an SOF0 with the
+ * frame size, then EOI. Nothing here decodes it — the tests assert the size the header declares.
+ */
+function jpegWithSize(width, height) {
+  const u16 = (value) => {
+    const bytes = Buffer.alloc(2);
+    bytes.writeUInt16BE(value);
+    return bytes;
+  };
+  return Buffer.concat([
+    Buffer.from([0xff, 0xd8]), // SOI
+    Buffer.from([0xff, 0xe0]), // APP0
+    u16(16),
+    Buffer.from('JFIF\0', 'latin1'),
+    Buffer.from([0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]),
+    Buffer.from([0xff, 0xc0]), // SOF0
+    u16(17),
+    Buffer.from([0x08]), // sample precision
+    u16(height),
+    u16(width),
+    Buffer.from([0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01]),
+    Buffer.from([0xff, 0xd9]), // EOI
+  ]);
+}
+
 const IMAGE_SOURCE = [
   'slug: demo',
   'title: "单张图的秒级合成"',
@@ -986,6 +1014,123 @@ test('images: the qwen backend posts the prompt and writes the image the API ret
   assert.equal(provenance.images[0].model, 'qwen-image-2.1');
   assert.equal(provenance.images[0].prompt, '一张插画');
   delete process.env.TEST_IMAGE_KEY;
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: covers and illustrations pick their backend separately', () => {
+  const config = { images: { backend: 'command', coverBackend: 'card', illustrationBackend: 'cloudflare' } };
+  assert.equal(defaultBackend(config, 'cover'), 'card');
+  assert.equal(defaultBackend(config, 'illustration'), 'cloudflare');
+  // Nothing set for the other kind: the global backend, then the built-in default.
+  assert.equal(defaultBackend({ images: { backend: 'command' } }, 'illustration'), 'command');
+  assert.equal(defaultBackend({}, 'cover'), 'card', 'a cover must never need a model');
+  assert.equal(defaultBackend({}, 'illustration'), 'qwen');
+
+  const source = `${IMAGE_SOURCE}images:\n  - id: bill\n    prompt: "一张画着账单的插画"\n`;
+  const { dir, topic } = imageTopic(source);
+  const jobs = planImages(topic, config);
+  assert.equal(jobs.find((j) => j.id === 'cover').backend, 'card');
+  assert.equal(jobs.find((j) => j.id === 'bill').backend, 'cloudflare');
+  // FLUX hands back a JPEG whatever the job is called, so the plan asks for the name it will write.
+  assert.equal(jobs.find((j) => j.id === 'bill').file, 'assets/bill.jpg');
+  assert.equal(jobs.find((j) => j.id === 'cover').file, 'assets/og.png');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: the size of a PNG or a JPEG is read from the file, not assumed', () => {
+  assert.deepEqual(imageSizeOf(TINY_PNG), { width: 1, height: 1 });
+  assert.deepEqual(imageSizeOf(jpegWithSize(1200, 624)), { width: 1200, height: 624 });
+  assert.equal(imageSizeOf(Buffer.from('this is not an image, it is a sentence')), null);
+  assert.equal(imageSizeOf(Buffer.alloc(4)), null);
+});
+
+test('images: the cloudflare backend posts a multipart form and names the file after what arrives', async () => {
+  const seen = [];
+  const server = http.createServer((req, res) => {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      seen.push({ url: req.url, auth: req.headers.authorization, type: req.headers['content-type'], body });
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ result: { image: jpegWithSize(1024, 576).toString('base64') } }));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+
+  const config = {
+    images: {
+      cloudflare: {
+        baseUrl: `http://127.0.0.1:${port}/client/v4/accounts`,
+        model: '@cf/black-forest-labs/flux-2-klein-9b',
+        steps: 4,
+        accountIdEnv: 'TEST_CF_ACCOUNT',
+        apiKeyEnv: 'TEST_CF_TOKEN',
+      },
+    },
+  };
+  process.env.TEST_CF_ACCOUNT = 'account-123';
+  process.env.TEST_CF_TOKEN = 'test-token';
+
+  const { dir, topic } = imageTopic();
+  // Deliberately planned as `.png`: the backend must correct the name to the format it was handed.
+  const withIllustration = { ...topic, source: { ...topic.source, images: [{ id: 'illo', prompt: '一张插画', file: 'assets/illo.png' }] } };
+  const result = await renderImages({ root: dir, config, topics: [withIllustration], backend: 'cloudflare', only: ['illo'], log: () => {} });
+  server.close();
+
+  assert.equal(result.failed.length, 0, JSON.stringify(result.failed));
+  assert.equal(result.rendered[0].file, 'assets/illo.jpg');
+  assert.deepEqual(fs.readFileSync(path.join(dir, 'topics/demo/assets/illo.jpg')), jpegWithSize(1024, 576));
+  assert.equal(fs.existsSync(path.join(dir, 'topics/demo/assets/illo.png')), false, 'a stray .png would shadow the real file in the article');
+
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].url, '/client/v4/accounts/account-123/ai/run/@cf/black-forest-labs/flux-2-klein-9b');
+  assert.equal(seen[0].auth, 'Bearer test-token', 'the key comes from the environment, never the file');
+  assert.match(seen[0].type, /^multipart\/form-data; boundary=/);
+  assert.match(seen[0].body, /name="prompt"\r\n\r\n一张插画/, 'the form carries the prompt as a field, not as JSON');
+  assert.match(seen[0].body, /name="steps"\r\n\r\n4/);
+
+  const provenance = JSON.parse(fs.readFileSync(path.join(dir, 'topics/demo/images.json'), 'utf8'));
+  assert.equal(provenance.images[0].file, 'assets/illo.jpg');
+  assert.equal(provenance.images[0].backend, 'cloudflare');
+  assert.equal(provenance.images[0].model, '@cf/black-forest-labs/flux-2-klein-9b');
+  assert.equal(provenance.images[0].size, '1024×576', 'the size recorded is the one that came back');
+  delete process.env.TEST_CF_ACCOUNT;
+  delete process.env.TEST_CF_TOKEN;
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: a cloudflare failure names the missing variable or the API error, and writes nothing', async () => {
+  const { dir, topic } = imageTopic();
+  const withIllustration = { ...topic, source: { ...topic.source, images: [{ id: 'illo', prompt: '一张插画' }] } };
+
+  const noKey = await renderImages({ root: dir, config: { images: { cloudflare: { accountIdEnv: 'TEST_CF_MISSING', apiKeyEnv: 'TEST_CF_MISSING' } } }, topics: [withIllustration], backend: 'cloudflare', only: ['illo'], log: () => {} });
+  assert.match(noKey.failed[0].reason, /TEST_CF_MISSING is not set/);
+  assert.equal(fs.existsSync(path.join(dir, 'topics/demo/assets/illo.jpg')), false);
+
+  const server = http.createServer((_req, res) => {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ errors: [{ message: 'AiError: Bad input' }], success: false }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  process.env.TEST_CF_ACCOUNT = 'account-123';
+  process.env.TEST_CF_TOKEN = 'test-token';
+  const bad = await renderImages({
+    root: dir,
+    config: { images: { cloudflare: { baseUrl: `http://127.0.0.1:${server.address().port}`, accountIdEnv: 'TEST_CF_ACCOUNT', apiKeyEnv: 'TEST_CF_TOKEN' } } },
+    topics: [withIllustration],
+    backend: 'cloudflare',
+    only: ['illo'],
+    log: () => {},
+  });
+  server.close();
+  assert.match(bad.failed[0].reason, /HTTP 400: .*Bad input/);
+  assert.equal(fs.existsSync(path.join(dir, 'topics/demo/assets/illo.jpg')), false);
+  delete process.env.TEST_CF_ACCOUNT;
+  delete process.env.TEST_CF_TOKEN;
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

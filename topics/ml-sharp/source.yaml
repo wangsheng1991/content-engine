@@ -38,6 +38,16 @@ links:
     url: https://github.com/apple/ml-sharp
   - label: "模型权重"
     url: https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt
+images:
+  - id: hero
+    caption: "一张照片 → 一份可实时渲染的 3D 高斯表示"
+    width: 1024
+    height: 576
+    prompt: >
+      A flat rectangle of light on the left side, dissolving rightwards into a cloud of tiny glowing
+      blue points that form the walls and floor of a small empty room seen in perspective. Behind
+      everything, near-black. One blue accent only, soft depth-of-field, cinematic, minimal. No text,
+      no letters, no poster, no frame, no border.
 platforms:
   bluesky:
     text: |

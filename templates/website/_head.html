@@ -20,8 +20,8 @@
 <meta property="og:url" content="{{ page.canonical }}">
 {{#if topic.has_cover}}
 <meta property="og:image" content="{{ topic.cover_url }}">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:image:width" content="{{ topic.cover_width }}">
+<meta property="og:image:height" content="{{ topic.cover_height }}">
 <meta property="og:image:alt" content="{{ topic.title }}">
 {{/if}}
 <meta name="twitter:card" content="{{#if topic.has_cover}}summary_large_image{{else}}summary{{/if}}">

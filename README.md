@@ -16,8 +16,8 @@ a link.
                  ├── cta.yaml              the call to action
                  ├── slides.md             deck source
                  ├── video.yaml            storyboard + voiceover
-                 └── assets/               photos, and the generated covers
-                          │                 og.png / og.en.png, images.json
+                 └── assets/               photos, covers and illustrations
+                          │                 og.png / og.en.png, hero.jpg, images.json
                  content build <slug>
                           │
    ┌──────────────┬───────┴────────┬──────────────┬─────────────┐
@@ -34,7 +34,7 @@ a link.
 node bin/content.mjs build                 # compile every topic into dist/
 node bin/content.mjs build ml-sharp        # compile one topic
 node bin/content.mjs build --site-only     # tier A only (what CI publishes)
-node bin/content.mjs images                # draw the missing covers
+node bin/content.mjs images                # draw the missing covers and illustrations
 node bin/content.mjs lint                  # the copywriting gate
 node bin/content.mjs list                  # what each topic has
 node bin/content.mjs new my-topic          # scaffold a topic directory
@@ -65,13 +65,18 @@ node bin/content.mjs images wan-i2v-first-frame --force
 node bin/content.mjs images --dry-run       # say what would be drawn, touch nothing
 ```
 
-Three backends, picked per topic or per illustration:
+Four backends, picked per topic or per illustration:
 
 | Backend | What it does | Needs |
 | --- | --- | --- |
-| `card` (default) | Lays the title out as HTML and screenshots it with the local Chrome | a local Chrome/Chromium |
+| `card` (default for covers) | Lays the title out as HTML and screenshots it with the local Chrome | a local Chrome/Chromium |
+| `cloudflare` | POSTs the prompt to Cloudflare Workers AI — FLUX.2 [klein] by default — and writes the image it returns | `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in the environment |
 | `qwen` | POSTs a prompt to an image API and writes what comes back | `images.qwen.endpoint` + a key in the named env var |
 | `command` | Runs any command you already have, with `{prompt} {out} {width} {height}` filled in | that command |
+
+`images.coverBackend` and `images.illustrationBackend` pick separately, and each
+beats the global `images.backend` — a cover is worth the free typographic card,
+while an illustration inside an article is where a picture model earns its keep.
 
 The `card` backend is the reason a cover is never blocked on a model: it is
 deterministic, free, and the typographic rules (中西文间距、CJK 不做负字距、标题按长度
@@ -79,6 +84,8 @@ deterministic, free, and the typographic rules (中西文间距、CJK 不做负�
 adapter over the provider's HTTP contract — endpoint, headers, body and the path
 to the image in the response all come from `content.config.json`, so pointing it
 at a real service is a config change rather than a code change.
+
+## Illustrations
 
 An illustration is declared in `source.yaml` and referenced from `article.md` by
 its plain relative path:
@@ -88,20 +95,34 @@ images:
   - id: bill
     prompt: "一张画着两张账单的插画，白色背景"
     caption: "有声和无声的价目差"
+    width: 1024          # optional, default 1024
+    height: 576          # optional, default 1024
 ```
 
 ```markdown
 ![有声和无声的价目差](assets/bill.png)
 ```
 
-`content build` reports any `assets/…` path an article points at that does not
-exist, and `topics/<slug>/images.json` records how each image was produced —
-backend, model, prompt, size and hash.
+Two things about a model backend are worth knowing before you point one at a
+topic. **A prompt that opens with a style word renders a poster**: `editorial
+illustration, …` came back as a magazine cover with invented headlines on it, so
+say what is in the picture and end with the negatives (`no text, no letters`).
+And **the extension follows the bytes, not the request** — Cloudflare answers
+with a JPEG whatever the job is called, so a planned `.png` lands as `.jpg` and
+`images.json` records the name that was actually written. `content build` reports
+any `assets/…` path an article points at that does not exist, so a mismatch is
+loud rather than a broken image on the published page.
+
+`topics/<slug>/images.json` records how each image was produced — backend, model,
+prompt and its hash, the size that came back, and the file's own hash:
 
 Covers reach the platforms too: the Chinese card is the site's `og:image`, an
 English card is rendered whenever `platforms.devto.title` exists, and Dev.to
 receives the English one as `cover_image` (it re-hosts the file, so the site has
-to be deployed first — which is the order `content publish` already uses).
+to be deployed first — which is the order `content publish` already uses). The
+`og:image:width` / `height` pair is read out of the cover file itself, because a
+model backend may answer a pixel or two off the 1200×630 that was requested —
+FLUX lays out on 16-pixel blocks, so 630 comes back as 624.
 
 ## Two gates before anything ships
 
@@ -178,7 +199,7 @@ src/topic.mjs          topic loading + validation
 src/yaml.mjs           restricted YAML parser
 src/markdown.mjs       restricted markdown renderer
 src/template.mjs       mustache-subset template engine
-src/images.mjs         covers and illustrations: card / qwen / command backends
+src/images.mjs         covers and illustrations: card / cloudflare / qwen / command
 src/typography.mjs     中西文间距与全角标点，构建期作用于中文正文
 src/lint.mjs           the copywriting gate (sparanoid/chinese-copywriting-guidelines)
 src/i18n.mjs           the English routes and the chrome strings for each language

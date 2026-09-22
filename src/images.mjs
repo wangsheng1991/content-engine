@@ -9,12 +9,14 @@
 //
 //  2. No image model is required to ship a cover. The `card` backend lays the title out as HTML and
 //     screenshots it with the local Chrome, which is deterministic, free and needs no key. A model
-//     backend (`qwen`, `command`) can be swapped in per topic the moment one is worth paying for.
+//     backend (`cloudflare`, `qwen`, `command`) can be swapped in per topic the moment one is worth
+//     paying for.
 //
 // Backends:
-//   card     render a typographic card with the local Chrome, headless — zero dependencies
-//   qwen     POST a prompt to an image API (qwen-image-2.1 and anything OpenAI-images shaped)
-//   command  run any command you already have, handing it the prompt and the output path
+//   card        render a typographic card with the local Chrome, headless — zero dependencies
+//   cloudflare  Cloudflare Workers AI: FLUX.2 [klein], and anything else in its catalogue
+//   qwen        POST a prompt to an image API (qwen-image-2.1 and anything OpenAI-images shaped)
+//   command     run any command you already have, handing it the prompt and the output path
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -22,9 +24,26 @@ import { spawn } from 'node:child_process';
 import { ensureDir, escapeHtml, exists, isPlainObject, sha256, toArray } from './util.mjs';
 import { englishTitle } from './i18n.mjs';
 
-export const BACKENDS = ['card', 'qwen', 'command'];
+export const BACKENDS = ['card', 'cloudflare', 'qwen', 'command'];
 export const COVER_WIDTH = 1200;
 export const COVER_HEIGHT = 630;
+
+/** Cloudflare Workers AI serves FLUX.2 [klein]; 9B is the one that came back at a usable speed. */
+const DEFAULT_CLOUDFLARE_MODEL = '@cf/black-forest-labs/flux-2-klein-9b';
+const CLOUDFLARE_BASE = 'https://api.cloudflare.com/client/v4/accounts';
+
+/**
+ * The file extension a backend's output actually carries.
+ *
+ * Cloudflare answers with a JPEG whatever the job asked for, so the plan has to ask for `.jpg` —
+ * otherwise a cover would be re-rendered on every run under the other name and `coverOf` would keep
+ * finding the stale one.
+ */
+const BACKEND_EXTENSION = { cloudflare: 'jpg' };
+
+function extensionOf(backend) {
+  return BACKEND_EXTENSION[backend] ?? 'png';
+}
 
 const CHROME_CANDIDATES = [
   process.env.CHROME_PATH,
@@ -41,11 +60,50 @@ export function chromePath() {
   return CHROME_CANDIDATES.find((p) => p && exists(p)) ?? null;
 }
 
-/** The image backend a job falls back to when neither the job nor the config picks one. */
+/**
+ * The image backend a job falls back to when neither the job nor the config picks one.
+ *
+ * `images.<kind>Backend` beats the global `images.backend`, so a project can keep the free
+ * typographic card on the covers and spend a model on the illustrations alone.
+ */
 export function defaultBackend(config = {}, kind = 'cover') {
   const images = config.images ?? {};
+  if (images[`${kind}Backend`]) return images[`${kind}Backend`];
   if (images.backend) return images.backend;
   return kind === 'cover' ? 'card' : 'qwen';
+}
+
+/**
+ * The pixel size of a PNG or a JPEG, read back from its bytes.
+ *
+ * A model backend does not always hand back the size it was asked for — FLUX snaps each side to a
+ * 16-pixel block, so a 1200×630 request comes back 1200×624 — and og:image has to state what the
+ * file really is. Anything unrecognised returns null and the caller keeps its own expectation.
+ */
+export function imageSizeOf(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 24) return null;
+  if (buffer.readUInt32BE(0) === 0x89504e47) {
+    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
+  }
+  if (buffer[0] !== 0xff || buffer[1] !== 0xd8) return null;
+  let i = 2;
+  while (i + 9 < buffer.length) {
+    if (buffer[i] !== 0xff) {
+      i += 1;
+      continue;
+    }
+    const marker = buffer[i + 1];
+    // SOF0..SOF15 carry the frame size; C4/C8/CC sit in that range but are Huffman/JPG/arithmetic.
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      return { width: buffer.readUInt16BE(i + 7), height: buffer.readUInt16BE(i + 5) };
+    }
+    if (marker === 0xd8 || (marker >= 0xd0 && marker <= 0xd9)) {
+      i += 2;
+      continue;
+    }
+    i += 2 + buffer.readUInt16BE(i + 2);
+  }
+  return null;
 }
 
 /**
@@ -86,12 +144,13 @@ export function planImages(topic, config = {}) {
   for (const variant of variants) {
     if (!variant.title) continue;
     const override = variant.lang === 'zh' ? cover : { ...cover, ...(cover.en ?? {}) };
+    const backend = override.backend ?? defaultBackend(config, 'cover');
     jobs.push({
       id: variant.id,
       kind: 'cover',
       lang: variant.lang,
-      file: `assets/og${variant.lang === 'en' ? '.en' : ''}.png`,
-      backend: override.backend ?? defaultBackend(config, 'cover'),
+      file: `assets/og${variant.lang === 'en' ? '.en' : ''}.${extensionOf(backend)}`,
+      backend,
       command: override.command,
       width: Number(override.width) || COVER_WIDTH,
       height: Number(override.height) || COVER_HEIGHT,
@@ -113,12 +172,13 @@ export function planImages(topic, config = {}) {
   for (const entry of toArray(source.images)) {
     if (!isPlainObject(entry) || !entry.id) continue;
     const id = String(entry.id);
+    const backend = entry.backend ?? defaultBackend(config, 'illustration');
     jobs.push({
       id,
       kind: 'illustration',
       lang: entry.lang ?? 'zh',
-      file: String(entry.file ?? `assets/${id}.png`),
-      backend: entry.backend ?? defaultBackend(config, 'illustration'),
+      file: String(entry.file ?? `assets/${id}.${extensionOf(backend)}`),
+      backend,
       command: entry.command,
       width: Number(entry.width) || 1024,
       height: Number(entry.height) || 1024,
@@ -417,6 +477,65 @@ async function renderQwen({ job, config, root, outFile, log }) {
   return { ok: true, backend: 'qwen', model: body.model ?? 'unknown' };
 }
 
+/**
+ * Cloudflare Workers AI — FLUX.2 [klein] and the rest of the catalogue.
+ *
+ * A backend of its own rather than another `qwen` config, because the contract is not the
+ * OpenAI-images one: a multipart form goes in, and `result.image` comes back as base64 JPEG with no
+ * `data:` prefix. The account id is not a secret, but it is read from the environment all the same,
+ * so pointing this at another account is a variable rather than an edit.
+ */
+async function renderCloudflare({ job, config, root, outFile, log }) {
+  const settings = config.images?.cloudflare ?? {};
+  const accountIdEnv = settings.accountIdEnv ?? 'CLOUDFLARE_ACCOUNT_ID';
+  const keyEnv = settings.apiKeyEnv ?? 'CLOUDFLARE_API_TOKEN';
+  const accountId = process.env[accountIdEnv];
+  const apiKey = process.env[keyEnv];
+  if (!accountId) return { ok: false, reason: `${accountIdEnv} is not set` };
+  if (!apiKey) return { ok: false, reason: `${keyEnv} is not set` };
+  if (!job.prompt) return { ok: false, reason: `${job.id}: a model backend needs a prompt` };
+
+  const model = settings.model ?? DEFAULT_CLOUDFLARE_MODEL;
+  const base = String(settings.baseUrl ?? CLOUDFLARE_BASE).replace(/\/+$/, '');
+  const form = new FormData();
+  form.set('prompt', job.prompt);
+  // FLUX lays out on 16-pixel blocks, so it may answer with a size a few pixels off the request —
+  // `imageSizeOf` reads the real one back out of the bytes rather than trusting these two numbers.
+  form.set('width', String(job.width));
+  form.set('height', String(job.height));
+  if (settings.steps) form.set('steps', String(settings.steps));
+  for (const [key, value] of Object.entries(settings.params ?? {})) form.set(key, String(value));
+
+  let response;
+  try {
+    response = await fetch(`${base}/${accountId}/ai/run/${model}`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${apiKey}` },
+      body: form,
+      signal: AbortSignal.timeout(Number(settings.timeoutMs) || 180000),
+    });
+  } catch (error) {
+    return { ok: false, reason: `request failed: ${error.message}` };
+  }
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    return { ok: false, reason: `HTTP ${response.status}: ${detail.slice(0, 300)}` };
+  }
+
+  const payload = await response.json().catch(() => null);
+  const encoded = payload && typeof payload.result?.image === 'string' ? payload.result.image : '';
+  if (!encoded) return { ok: false, reason: 'no image in the response (looked at result.image)' };
+  const bytes = Buffer.from(encoded.replace(/^data:[^,]+,/, ''), 'base64');
+  // Whatever the job asked for, what arrived is a JPEG — so the file is named after the bytes, and
+  // the size recorded is the one the model actually returned.
+  const file = `${path.basename(outFile).replace(/\.[^.]+$/, '')}.${bytes[0] === 0x89 ? 'png' : 'jpg'}`;
+  const written = path.join(path.dirname(outFile), file);
+  fs.writeFileSync(written, bytes);
+  const size = imageSizeOf(bytes);
+  log(`  cloudflare → ${path.relative(root, written)}${size ? ` (${size.width}×${size.height})` : ''}`);
+  return { ok: true, backend: 'cloudflare', model, file, size };
+}
+
 /** The escape hatch: any command you already have, told where to write the file. */
 async function renderCommand({ job, config, root, outFile, log }) {
   const template = job.command ?? config.images?.command;
@@ -437,7 +556,7 @@ async function renderCommand({ job, config, root, outFile, log }) {
   return { ok: true, backend: 'command', model: 'shell' };
 }
 
-const RENDERERS = { card: renderCard, qwen: renderQwen, command: renderCommand };
+const RENDERERS = { card: renderCard, cloudflare: renderCloudflare, qwen: renderQwen, command: renderCommand };
 
 /**
  * Produce every planned image for the selected topics.
@@ -495,19 +614,27 @@ export async function renderImages({
         log(`  ${job.id}: skipped — ${result.reason}`);
         continue;
       }
-      const bytes = fs.statSync(outFile).size;
-      rendered.push({ slug: topic.slug, id: job.id, file: job.file, backend: result.backend, bytes });
+      // A backend may answer with a different extension than the job asked for (FLUX always hands
+      // back a JPEG), so the file it reports is the one recorded. A differently named sibling — a
+      // cover left over from another backend — is called out rather than deleted.
+      const file = result.file ? path.join(path.dirname(job.file), result.file) : job.file;
+      const written = path.join(topic.dir, file);
+      if (file !== job.file && exists(path.join(topic.dir, job.file))) {
+        log(`  提示：${job.file} 是上一次用别的后端生成的，coverOf 会优先用它 —— 确认后自行删除`);
+      }
+      const bytes = fs.statSync(written).size;
+      rendered.push({ slug: topic.slug, id: job.id, file, backend: result.backend, bytes });
       record.push({
         id: job.id,
-        file: job.file,
+        file,
         kind: job.kind,
         backend: result.backend,
         model: result.model,
         prompt: job.prompt || undefined,
         prompt_sha256: job.prompt ? sha256(job.prompt).slice(0, 16) : undefined,
-        size: `${job.width}×${job.height}`,
+        size: result.size ? `${result.size.width}×${result.size.height}` : `${job.width}×${job.height}`,
         bytes,
-        sha256: sha256(fs.readFileSync(outFile)).slice(0, 16),
+        sha256: sha256(fs.readFileSync(written)).slice(0, 16),
       });
     }
     if (record.length) provenance[topic.slug] = record;

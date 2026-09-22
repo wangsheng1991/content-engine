@@ -16,7 +16,7 @@ import { serve } from '../src/serve.mjs';
 import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
 import { verifyAll } from '../src/verify.mjs';
 import { hfPublish } from '../src/hf.mjs';
-import { BACKENDS, chromePath, coverOf, renderImages } from '../src/images.mjs';
+import { BACKENDS, chromePath, coverOf, defaultBackend, renderImages } from '../src/images.mjs';
 import { lintAll } from '../src/lint.mjs';
 import { blueskyPublish } from '../src/bluesky.mjs';
 import { devtoPublish } from '../src/devto.mjs';
@@ -42,7 +42,7 @@ const HELP = `content — GitHub-first content engine
 
 用法:
   content build [slug...] [--all] [--site-only] [--out <dir>]
-  content images [slug...] [--backend card|qwen|command] [--only <id,...>] [--force] [--dry-run]
+  content images [slug...] [--backend card|cloudflare|qwen|command] [--only <id,...>] [--force] [--dry-run]
   content lint [slug...]
   content verify [slug...] [--online] [--strict]
   content publish [--git] [--dry-run] [--hf] [--bluesky [<slug>...]] [--devto [<slug>...]] [--draft]
@@ -60,10 +60,12 @@ const HELP = `content — GitHub-first content engine
   content images 生成封面与插画，写进 topics/<slug>/assets/ —— 是随主题提交的源文件，不是
   dist/ 产物。因为 CI 在 ubuntu 上编译站点，既没有 Chrome 也没有中文字体，构建期生成的图会
   悄悄从线上站点消失。已有图片默认沿用，--force 才重画。
-  后端三选一：card（默认，用本机 Chrome 把标题排成 1200×630 的卡片截图，零依赖、不需要任何
-  模型）、qwen（把 prompt 发给图像 API，endpoint/model 在 content.config.json 的 images.qwen）、
-  command（把 {prompt} {out} {width} {height} 填进任意命令）。插画写在 source.yaml 的 images: 里，
-  正文用 assets/<id>.png 引用即可。
+  后端四选一：card（默认给封面用，用本机 Chrome 把标题排成 1200×630 的卡片截图，零依赖、不
+  需要任何模型）、cloudflare（Cloudflare Workers AI，默认 @cf/black-forest-labs/flux-2-klein-9b，
+  凭证取自 CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN）、qwen（把 prompt 发给图像 API，
+  endpoint/model 在 content.config.json 的 images.qwen）、command（把 {prompt} {out} {width}
+  {height} 填进任意命令）。插画写在 source.yaml 的 images: 里，正文用 assets/<id>.<png|jpg> 引用。
+  封面与插画可以分开选：images.coverBackend / images.illustrationBackend，后者优先于 images.backend。
 
   content publish --bluesky <slug> 单列：Bluesky 是这套平台里唯一用账号自己的 app password
   就能发的，凭证放 vault（BLUESKY_HANDLE / BLUESKY_APP_PASSWORD），发布后回读公开接口确认。
@@ -204,7 +206,7 @@ async function main() {
       if (backend && !BACKENDS.includes(backend)) {
         throw new Error(`未知的图像后端 "${backend}" —— 可选：${BACKENDS.join(' / ')}`);
       }
-      if ((backend ?? config.images?.backend) === 'card' && !chromePath()) {
+      if ((backend ?? defaultBackend(config, 'cover')) === 'card' && !chromePath()) {
         console.log('提示：本机没找到 Chrome/Chromium，card 后端需要它（可用 CHROME_PATH 指定）');
       }
       const result = await renderImages({

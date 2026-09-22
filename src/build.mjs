@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { ARTIFACT_TIERS, PLATFORMS } from './platforms.mjs';
 import { buildDeck, pandocPath } from './deck.mjs';
 import { htmlLangOf, siteFor, stringsFor, englishSummary, englishTitle } from './i18n.mjs';
-import { coverOf, englishCoverOf, missingAssets } from './images.mjs';
+import { COVER_HEIGHT, COVER_WIDTH, coverOf, englishCoverOf, imageSizeOf, missingAssets } from './images.mjs';
 import { extractHeadings, renderMarkdown, toPlainText } from './markdown.mjs';
 import { spaceCjkHtml } from './typography.mjs';
 import { renderTemplate } from './template.mjs';
@@ -412,6 +412,7 @@ function buildTopicView(topic, ctx, lang = 'zh') {
   const cover = coverOf(topic);
   const coverEn = englishCoverOf(topic);
   const shown = english ? coverEn ?? cover : cover;
+  const coverSize = shown ? imageSizeOf(fs.readFileSync(path.join(topic.dir, shown.file))) : null;
   const evidence = (topic.evidence?.claims ?? []).map((claim) => ({
     ...claim,
     host: hostOf(claim.source),
@@ -469,6 +470,10 @@ function buildTopicView(topic, ctx, lang = 'zh') {
       // is worth rendering whenever one exists; the Chinese card is the fallback, not the default.
       cover_en_url: coverEn ? ctx.siteUrl(`assets/${topic.slug}/${coverEn.rel}`) : cover ? ctx.siteUrl(`assets/${topic.slug}/${cover.rel}`) : '',
       has_cover: Boolean(shown),
+      // A model backend can answer with a size slightly off the request, so og:image states what the
+      // file on disk really is rather than what was asked for.
+      cover_width: coverSize?.width ?? COVER_WIDTH,
+      cover_height: coverSize?.height ?? COVER_HEIGHT,
       cover_bytes: shown ? byteSize(path.join(topic.dir, shown.file)) : 0,
     },
     evidence,

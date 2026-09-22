@@ -1,16 +1,24 @@
 {
   "topic": "ml-sharp",
-  "generated_at": "2026-09-22T10:40:29Z",
+  "generated_at": "2026-09-22T12:25:47Z",
   "images": [
     {
       "id": "cover",
       "file": "assets/og.png",
-      "kind": "cover",
-      "backend": "card",
-      "model": "html+chrome",
-      "size": "1200×630",
-      "bytes": 64020,
-      "sha256": "38dc6a202a4fc370"
+      "backend": "kept",
+      "bytes": 64020
+    },
+    {
+      "id": "hero",
+      "file": "assets/hero.jpg",
+      "kind": "illustration",
+      "backend": "cloudflare",
+      "model": "@cf/black-forest-labs/flux-2-klein-9b",
+      "prompt": "A flat rectangle of light on the left side, dissolving rightwards into a cloud of tiny glowing blue points that form the walls and floor of a small empty room seen in perspective. Behind everything, near-black. One blue accent only, soft depth-of-field, cinematic, minimal. No text, no letters, no poster, no frame, no border.\n",
+      "prompt_sha256": "121bdb73375f78c6",
+      "size": "1024×576",
+      "bytes": 386435,
+      "sha256": "b5be35e3b1ef42b6"
     }
   ]
 }

@@ -24,9 +24,18 @@
   },
   "images": {
     "backend": "card",
+    "coverBackend": "card",
+    "illustrationBackend": "cloudflare",
     "card": {
       "width": 1200,
       "height": 630
+    },
+    "cloudflare": {
+      "model": "@cf/black-forest-labs/flux-2-klein-9b",
+      "steps": 4,
+      "accountIdEnv": "CLOUDFLARE_ACCOUNT_ID",
+      "apiKeyEnv": "CLOUDFLARE_API_TOKEN",
+      "timeoutMs": 300000
     },
     "qwen": {
       "endpoint": "",
