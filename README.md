@@ -35,6 +35,7 @@ node bin/content.mjs build                 # compile every topic into dist/
 node bin/content.mjs build ml-sharp        # compile one topic
 node bin/content.mjs build --site-only     # tier A only (what CI publishes)
 node bin/content.mjs images                # draw the missing covers
+node bin/content.mjs lint                  # the copywriting gate
 node bin/content.mjs list                  # what each topic has
 node bin/content.mjs new my-topic          # scaffold a topic directory
 node bin/content.mjs serve                 # preview dist/site at :4173
@@ -102,6 +103,30 @@ English card is rendered whenever `platforms.devto.title` exists, and Dev.to
 receives the English one as `cover_image` (it re-hosts the file, so the site has
 to be deployed first — which is the order `content publish` already uses).
 
+## Two gates before anything ships
+
+`content lint` and `content verify` answer two different questions, and both run in CI.
+
+**`content lint` — is the copy written the way this site writes?** The typography pass in
+`src/typography.mjs` fixes the spacing inside the article body on its way into HTML, but the
+title, the subtitle, the summary, the key facts and the call to action never go through it — and
+those are the strings a reader meets first: the link preview, the cover card, the post. The rules
+come from [sparanoid/chinese-copywriting-guidelines](https://github.com/sparanoid/chinese-copywriting-guidelines)
+(MIT): 中西文之间加空格, 全角标点两边不留空格, 不重复标点, 中文正文用直角引号「」. Code blocks,
+inline code, link targets and table rules are masked out before anything is judged.
+
+```bash
+node bin/content.mjs lint
+node bin/content.mjs lint wan-i2v-first-frame
+```
+
+Deliberately not checked: halfwidth/fullwidth conversion, 数字与单位, proper-noun casing. Each needs
+a decision about meaning, and a checker that guesses is a checker people learn to turn off.
+
+**`content verify` — does every claim still exist?** One claim → one source URL, and a quote that
+has to appear verbatim in that source. `--online` re-fetches the sources; a source that cannot be
+reached is reported as unreachable rather than quietly passing.
+
 ## Tier A vs Tier B
 
 Every artifact is tagged in `dist/manifest.json`:
@@ -147,13 +172,16 @@ rather than guessing.
 ## Layout
 
 ```
-bin/content.mjs        CLI: build / images / publish / new / list / serve
+bin/content.mjs        CLI: build / images / lint / publish / new / list / serve
 src/build.mjs          the compiler and the artifact manifest
 src/topic.mjs          topic loading + validation
 src/yaml.mjs           restricted YAML parser
 src/markdown.mjs       restricted markdown renderer
 src/template.mjs       mustache-subset template engine
 src/images.mjs         covers and illustrations: card / qwen / command backends
+src/typography.mjs     中西文间距与全角标点，构建期作用于中文正文
+src/lint.mjs           the copywriting gate (sparanoid/chinese-copywriting-guidelines)
+src/i18n.mjs           the English routes and the chrome strings for each language
 src/deck.mjs           pandoc bridge (deck.pptx)
 src/publish.mjs        tier report + optional git commit/push
 src/serve.mjs          static preview server

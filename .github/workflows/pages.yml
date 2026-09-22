@@ -32,6 +32,10 @@ jobs:
         run: node bin/content.mjs build --all
       - name: Run the test suite
         run: node tests/run.mjs
+      - name: Check the copywriting rules
+        # Titles, summaries, key facts and calls to action never pass through the typography pass, and
+        # they are the strings a reader meets first — in the link preview and on the cover card.
+        run: node bin/content.mjs lint
       - name: Verify the evidence behind every claim
         # The structural gate only: it needs no network, so a flaky source host can
         # never block a deploy. Run `content verify --online --strict` by hand when

@@ -17,6 +17,7 @@ import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
 import { verifyAll } from '../src/verify.mjs';
 import { hfPublish } from '../src/hf.mjs';
 import { BACKENDS, chromePath, coverOf, renderImages } from '../src/images.mjs';
+import { lintAll } from '../src/lint.mjs';
 import { blueskyPublish } from '../src/bluesky.mjs';
 import { devtoPublish } from '../src/devto.mjs';
 
@@ -42,6 +43,7 @@ const HELP = `content — GitHub-first content engine
 用法:
   content build [slug...] [--all] [--site-only] [--out <dir>]
   content images [slug...] [--backend card|qwen|command] [--only <id,...>] [--force] [--dry-run]
+  content lint [slug...]
   content verify [slug...] [--online] [--strict]
   content publish [--git] [--dry-run] [--hf] [--bluesky [<slug>...]] [--devto [<slug>...]] [--draft]
                   [--repo <owner/name>] [--public]
@@ -71,6 +73,12 @@ const HELP = `content — GitHub-first content engine
   自己的站点，搜索引擎的功劳记在站点上而不是复制品上。加 --draft 先存草稿，先加 --dry-run 看标题标签。
   有封面时一并作为 cover_image 发过去（优先英文版封面），Dev.to 会把它转存到自己的 CDN，
   所以站点要先部署好再发这一条。
+
+  content lint 是发布前的文案闸门，管的是编译器管不了的那部分：标题、副标题、摘要、key_facts、
+  行动号召和平台草稿都不走排版层，而它们恰恰是读者最先看到的那几行（链接预览、封面卡片、帖子）。
+  规则取自 sparanoid/chinese-copywriting-guidelines（MIT）：中西文之间加空格、全角标点两边不留空格、
+  不重复标点、中文正文用直角引号「」。代码块、行内代码、链接地址和表格分隔线会被遮掉，不参与判断。
+  正文里的空格排版层已经替你补上了，所以这里报出来的多半是 source.yaml / cta.yaml 里的字。加 --help 看规则。
 
   content verify 是发布前的质量闸门：每条 claim 必须带一段能在它自己的
   source 里逐字找到的 quote。默认只做不需要联网的结构检查；加 --online
@@ -215,6 +223,18 @@ async function main() {
       );
       for (const item of result.failed) console.log(`  ✗ ${item.slug}/${item.id}：${item.reason}`);
       console.log('图像写在 topics/<slug>/assets/ 里，是随主题一起提交的源文件 —— dist/ 每次重建都会清空。');
+      break;
+    }
+    case 'lint': {
+      const { reports, ok } = lintAll(ROOT, {
+        topicsDir: config.paths.topics,
+        slugs: rest.length ? rest : undefined,
+        log: (line) => console.log(line),
+      });
+      console.log('');
+      const bad = reports.filter((r) => r.problems.length).length;
+      console.log(ok ? `文案闸门通过：${reports.length} 个主题` : `文案闸门未通过：${bad}/${reports.length} 个主题有问题`);
+      if (!ok) process.exitCode = 1;
       break;
     }
     case 'new': {

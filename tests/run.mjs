@@ -23,6 +23,7 @@ import {
   renderImages,
 } from '../src/images.mjs';
 import { extractHeadings, renderMarkdown, toPlainText } from '../src/markdown.mjs';
+import { lintAll, lintText, lintTopic, maskMarkdown } from '../src/lint.mjs';
 import { renderTemplate } from '../src/template.mjs';
 import { loadTopic } from '../src/topic.mjs';
 import { parseYaml } from '../src/yaml.mjs';
@@ -1209,6 +1210,57 @@ test('typography: a rendered paragraph is spaced without breaking its markup', (
     spaceCjkHtml(html),
     '<p>一张 1024×768 的效果图，模型 wan2.6 只需要一张首帧图。</p>\n<p>在 LeanCloud 上，数据存储是围绕<code>AVObject</code>进行的。</p>',
   );
+});
+
+// --- lint (the copywriting gate) ---------------------------------------------
+test('lint: the spacing, punctuation and quote rules fire on what they should', () => {
+  const rules = (text) => lintText(text).map((p) => p.rule);
+  assert.deepEqual(rules('把一张1024×768的效果图'), ['cjk-latin-space', 'cjk-latin-space']);
+  assert.deepEqual(rules('wan2.6-i2v-flash只需要一张首帧图'), ['cjk-latin-space']);
+  assert.deepEqual(rules('中文 ，好'), ['fullwidth-punct-space']);
+  assert.deepEqual(rules('iPhone ，好开心！'), ['fullwidth-punct-space']);
+  assert.deepEqual(rules('这是一句感叹！！'), ['repeated-punct']);
+  assert.deepEqual(rules('他说“这是一段话”'), ['curly-quotes', 'curly-quotes']);
+});
+
+test('lint: correct copy passes, and the deliberate exceptions stay exceptions', () => {
+  const rules = (text) => lintText(text).map((p) => p.rule);
+  assert.deepEqual(rules('正常的中英混排 100% 没问题。'), []);
+  assert.deepEqual(rules('他说「这是一段话」'), []);
+  // `……` and `——` are legitimate repetitions, and a spaced em dash is the author's choice.
+  assert.deepEqual(rules('他想了一会儿……那个 —— 是破折号'), []);
+  // A space that closes a markdown table cell is syntax, not prose.
+  assert.deepEqual(rules('| 单条成本 | ¥1.50（本该是 ¥0.75） |'), []);
+});
+
+test('lint: code, inline code, link targets and table rules are masked out', () => {
+  const masked = maskMarkdown(
+    ['# 标题', '', '`code 中文abc` 与 中文abc', '', '```js', 'const a = 1; 中文abc', '```', '', '[文档](https://example.com/中文abc)', ''].join('\n'),
+  );
+  assert.ok(!masked.includes('中文abc`'), 'inline code is masked');
+  assert.ok(!masked.includes('const a = 1'), 'a fenced block is masked');
+  assert.ok(!masked.includes('https://example.com'), 'a link target is masked');
+  assert.ok(masked.includes('与 中文abc'), 'the prose around it is not');
+  // Line numbers are read off the masked text, so its shape has to match the original exactly.
+  assert.equal(masked.split('\n').length, 10);
+});
+
+test('lint: a topic with a missing asset fails and a missing cover only warns', () => {
+  const { dir, topic } = imageTopic(IMAGE_SOURCE, { article: '## x\n\n![图](assets/gone.png)\n' });
+  fs.writeFileSync(path.join(dir, 'topics/demo/cta.yaml'), 'headline: "标题里没有空格:中文abc"\nlabel: "试试"\nurl: https://example.com\n');
+  const report = lintTopic(dir, 'demo');
+  assert.equal(report.problems.length, 2, report.problems.join(' | '));
+  assert.ok(report.problems.some((p) => p.includes('assets/gone.png')));
+  assert.ok(report.problems.some((p) => p.includes('cta.yaml headline')));
+  assert.ok(report.warnings.some((w) => w.includes('封面')));
+  assert.equal(topic.slug, 'demo');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('lint: the compiled topics pass their own gate', () => {
+  const { reports, ok } = lintAll(ROOT, { log: () => {} });
+  assert.ok(reports.length >= 2);
+  assert.ok(ok, reports.flatMap((r) => r.problems).join(' | '));
 });
 
 await Promise.all(pending);
