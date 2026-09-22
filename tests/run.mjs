@@ -279,7 +279,7 @@ test('build: only the topic with an English body gets /en/ routes, and both side
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'content-engine-en-'));
   build({ root: ROOT, config, outDir, log: () => {} });
 
-  const withEnglish = ['wan-i2v-first-frame'];
+  const withEnglish = ['wan-i2v-first-frame', 'qwen-image-2-1-bench'];
   const withoutEnglish = ['ml-sharp'];
 
   for (const slug of withEnglish) {
@@ -290,9 +290,14 @@ test('build: only the topic with an English body gets /en/ routes, and both side
     assert.match(en, /hreflang="x-default"/);
     assert.ok(!en.includes('一张照片进去'), 'the English page must not carry the Chinese call to action');
     assert.ok(!en.includes('查看仓库'), 'the English page must not carry Chinese chrome');
+    // The English article *is* the English page for that topic — key_facts and evidence claims are
+    // written in Chinese — so there is nothing to link to and the page must not link to itself.
+    assert.ok(!en.includes('Topic page'), 'there is no English topic page to link to');
+    assert.ok(!en.includes(`href="/content-engine/en/blog/${slug}/">Topic page`), 'and never a self-link');
 
     const zh = fs.readFileSync(path.join(outDir, `site/blog/${slug}/index.html`), 'utf8');
     assert.match(zh, new RegExp(`hreflang="en" href="https://[^"]+/en/blog/${slug}/"`));
+    assert.ok(zh.includes(`href="/content-engine/topics/${slug}/">主题页</a>`), 'the Chinese page still links to its topic page');
   }
   for (const slug of withoutEnglish) {
     assert.ok(!fs.existsSync(path.join(outDir, `site/en/blog/${slug}/index.html`)));

@@ -1,0 +1,19 @@
+headline: "选模型这件事，最贵的从来不是分数"
+body: |
+  这份实测里最有用的一条，不是「哪家第一」，而是「同一个模型，换个喂法，成绩就变了」——
+  榜单总分和你手上的活之间，隔着一整套管线的默认值。
+  如果你要出的是室内效果图，这一步其实可以跳过：渲见（RenVi）把「一张房间照片 + 一句风格描述」
+  这条链已经串好了，模型选型、分辨率、步数都在服务端，你不用自己调。
+label: "上传房间照片，免费出一张效果图"
+url: https://www.houseplusplus.com
+en:
+  headline: "Picking an image model is not the expensive part"
+  body: |
+    The useful lesson here is not which model won. It is that the same model scores differently
+    depending on how you feed it — between a leaderboard total and the job on your desk sits a
+    whole set of pipeline defaults.
+    If the job is an interior render, that step is already done for you: RenVi turns one room photo
+    and one style description into a finished render, with the model, resolution and step count
+    handled server-side.
+  label: "Upload a room photo, get one render free"
+  url: https://www.houseplusplus.com

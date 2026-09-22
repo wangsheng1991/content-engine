@@ -1,0 +1,76 @@
+slug: qwen-image-2-1-bench
+title: "Qwen-Image-2.1 实测：7 题过 4 题，差距大半在口径上"
+subtitle: "三家图像模型、同一台机器、同一份公开题面，全部用原题面同 seed。首轮 7 题只过 4 题 —— 而只把题面改成长描述，两道失败题当场都过了。"
+title_en: "Qwen-Image-2.1 on public prompts: the 4/7 was protocol, not capability"
+subtitle_en: "Three image models, one machine, one public prompt set, verbatim and same-seed. Rewriting the prompts into enhancer-style descriptions fixed both failures on the spot."
+kind: practice
+date: 2026-09-22
+updated: 2026-09-22
+status: published
+summary: |
+  把 Qwen-Image-2.1、SenseNova-U1.5 和一个 4 步 INT4 的 FLUX.2-klein 放在同一台机器、同一张卡上，
+  用 GenEval / DPG-Bench / LongText-Bench 的原题面逐题对打：Qwen 的组合题只有 4/7，另两家 7/7。
+  但官方推荐的管线是「提示词增强 + 2048² + 40 步」，我们首轮三样一样没占。只把题面改写成增强器风格的长描述，
+  同分辨率、同 seed，两道丢物体的题当场都过了 —— 这类失败是短请求不吃，不是不会画。
+  另外做了一套 26 道自建垂直题（9 个领域、156 张出图），回答「这个活到底该用哪个模型」：
+  九个领域里没有通吃的，SenseNova 拿下效果图、人像、UI 稿、漫画分镜，Qwen 独占中文海报大标题与原生透明 RGBA。
+summary_en: |
+  Qwen-Image-2.1, SenseNova-U1.5 and a 4-step INT4 FLUX.2-klein, on one machine and one GPU, run
+  against the verbatim text of GenEval / DPG-Bench / LongText-Bench, same seed: Qwen passed 4 of 7
+  compositional prompts where both baselines went 7/7. But the recommended pipeline is prompt
+  rewriter + 2048² + 40 steps, and round one used none of them. Rewriting the prompts into
+  enhancer-style descriptions — same resolution, same seed — fixed both object-dropping failures on
+  the spot. These are prompts the model does not eat, not pictures it cannot draw.
+  A second, self-authored set of 26 vertical prompts (9 domains, 156 images) answers "which model
+  should take this job": no single model wins everywhere. SenseNova takes renders, portraits, UI
+  mockups and comic panels; Qwen owns the Chinese poster headline and native transparent RGBA.
+tags: [图像生成, Qwen-Image, 模型选型, 提示词工程, 实测]
+hashtags: [图像生成, QwenImage, 模型选型, 提示词工程, AI绘图测评]
+canonical:
+  repo: https://github.com/wangsheng1991/qwen-image-2.1-bench
+  report: https://wangsheng1991.github.io/qwen-image-2.1-bench/
+  prompts: https://github.com/wangsheng1991/qwen-image-2.1-bench/blob/main/prompts.json
+  model: https://huggingface.co/Qwen/Qwen-Image-2.1
+  official: https://github.com/QwenLM/Qwen-Image-2.1
+key_facts:
+  - label: 对打的三家
+    value: "Qwen-Image-2.1（7B DiT）/ SenseNova-U1.5（8B+8B MoT，8 步）/ FLUX.2-klein-KV（9B 蒸馏 + INT4，4 步）"
+  - label: 题单
+    value: "公开榜单原题面 18 题（GenEval 7 / DPG-Bench 4 / LongText-Bench 6 / 官方模型卡 1），同 seed"
+  - label: 首轮组合题
+    value: "Qwen 4/7，SenseNova 7/7，FLUX 7/7"
+  - label: 只改题面的消融
+    value: "2048²、20 步、seed 42 全不动，只把题面改成长描述：两道失败题 2/2 修复"
+  - label: 官方配方（2048²/40 步）的代价
+    value: "172 s/张 vs 1024²/20 步的 52 s/张，而长文本指标没看到提升"
+  - label: 三家耗时中位
+    value: "1024²：Qwen 52.1 s / SenseNova 9.8 s / FLUX 1.6 s"
+  - label: 垂直套件
+    value: "9 个领域 26 道自建题、156 张出图；九个领域没有一家通吃"
+  - label: Qwen 独占的两项
+    value: "原生透明 RGBA；中文海报大标题排版（OCR 4/4）"
+links:
+  - label: "Qwen-Image-2.1 官方 README（推荐管线与默认参数）"
+    url: https://github.com/QwenLM/Qwen-Image-2.1
+  - label: "官方发布博客"
+    url: https://qwen.ai/blog?id=qwen-image-2.1
+  - label: "题面原文与逐题出图（本仓库）"
+    url: https://github.com/wangsheng1991/qwen-image-2.1-bench
+  - label: "网页版报告"
+    url: https://wangsheng1991.github.io/qwen-image-2.1-bench/
+  - label: "复现脚本"
+    url: https://github.com/wangsheng1991/qwen-image-2.1-bench/tree/main/scripts
+platforms:
+  bluesky:
+    text: |
+      Ran Qwen-Image-2.1, SenseNova-U1.5 and an INT4 4-step FLUX.2-klein on the same machine against verbatim GenEval/DPG/LongText prompts, same seed. Qwen went 4/7 on compositional prompts where both others went 7/7. Then we changed only the prompts — rewritten into enhancer-style long descriptions, same resolution, same seed — and both failures passed.
+  xiaohongshu:
+    title: "同一个模型，7 题过 4 题和 7 题全过，差的只是题面📝"
+    hook: "三家图像模型同机对打：Qwen-Image-2.1 组合题只过 4/7。把题面从「a photo of two clocks」改成长描述，同分辨率同 seed，两个钟就都出来了。"
+  reddit:
+    title: "Qwen-Image-2.1 scored 4/7 on GenEval prompts — rewriting only the prompt fixed both failures"
+    hook: "Three image models on one GPU against the verbatim text of GenEval / DPG-Bench / LongText-Bench, same seed. Qwen-Image-2.1 went 4/7 on compositional prompts where SenseNova-U1.5 and FLUX.2-klein went 7/7. Same resolution, same seed, only the prompt rewritten into an enhancer-style long description: both object-dropping failures passed. The model does not eat terse requests."
+  x:
+    title: "Qwen-Image-2.1 went 4/7 on GenEval's own prompts. Only the prompt changed — and both failures passed."
+  zhihu:
+    title: "同一份公开题面，Qwen-Image-2.1 组合题只过 4/7，为什么把提示词改写成描述就能修好？"

@@ -1,0 +1,90 @@
+{
+  "topic": "qwen-image-2-1-bench",
+  "checked_at": "2026-09-22",
+  "claims": [
+    {
+      "id": "qwen-7b-visual-component",
+      "claim": "Qwen-Image-2.1 的视觉生成部分是 7B 参数、32 层 Single-Stream DiT。",
+      "source": "https://raw.githubusercontent.com/QwenLM/Qwen-Image-2.1/main/README.md",
+      "quote": "With just **7B parameters in its visual generation component** (32 Single-Stream DiT layers), Qwen-Image-2.1 balances generation quality, inference efficiency, and versatility.",
+      "verified": true
+    },
+    {
+      "id": "qwen-native-transparency",
+      "claim": "Qwen-Image-2.1 支持从文本生成原生透明（RGBA）图像，这是它在本次对打中唯一独占的能力。",
+      "source": "https://raw.githubusercontent.com/QwenLM/Qwen-Image-2.1/main/README.md",
+      "quote": "**Native Transparency, Unified Creation and Editing** — Generate regular or transparent (RGBA) images from text, edit transparent layers, and extract subjects from photographs—all in one model.",
+      "verified": true
+    },
+    {
+      "id": "qwen-default-parameters",
+      "claim": "官方 README 写明的默认推理参数是 40 步、2048×2048 —— 首轮实测用的是 20 步、1024²。",
+      "source": "https://raw.githubusercontent.com/QwenLM/Qwen-Image-2.1/main/README.md",
+      "quote": "| `num_inference_steps` | 40 | Number of denoising steps |",
+      "verified": true
+    },
+    {
+      "id": "qwen-recommends-prompt-rewriting",
+      "claim": "官方 README 明确推荐用官方提示词增强模型把短提示扩写成长描述，这一条首轮实测没有采用。",
+      "source": "https://raw.githubusercontent.com/QwenLM/Qwen-Image-2.1/main/README.md",
+      "quote": "For best results, we recommend using the official **prompt rewriting models** to expand short prompts into detailed, high-quality descriptions.",
+      "verified": true
+    },
+    {
+      "id": "recorded-gen-eval-and-timings",
+      "claim": "本次实测记录的首轮成绩：GenEval 组合题 Qwen 4/7、另两家 7/7；1024² 单张中位 Qwen 52.1 s、SenseNova 9.8 s、FLUX 1.6 s。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/qwen-image-2.1-bench/main/README.md",
+      "quote": "| GenEval 组合题（7 题） | **4/7** | 7/7 | 7/7 |",
+      "verified": true
+    },
+    {
+      "id": "recorded-prompt-rewrite-ablation",
+      "claim": "只改题面的消融：同分辨率、同 seed 下，把 GenEval 原题面改写成增强器风格长描述后，`a photo of two clocks` 从只画一个钟变成正好两个，丢苹果那题两个物体都回来了。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/qwen-image-2.1-bench/main/blog/prompt-rewrite-ablation.md",
+      "quote": "| `a photo of two clocks` | 原题面**只画一个钟** → 长描述**正好两个** |",
+      "verified": true
+    },
+    {
+      "id": "recorded-official-recipe-cost",
+      "claim": "按官方配方（2048²/40 步）重跑长文本题，文字指标没看到提升，代价是 172 s/张，而 1024²/20 步是 52 s/张。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/qwen-image-2.1-bench/main/README.md",
+      "quote": "代价倒是实打实：2048²/40 步 **172 s/张** vs 1024²/20 步 52 s/张。",
+      "verified": true
+    },
+    {
+      "id": "recorded-ocr-ruler",
+      "claim": "文字题的客观打分口径：RapidOCR 读图，字符准确率 = 1 − 编辑距离/参考长度，逐行相似度 ≥ 0.85 记一次命中。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/qwen-image-2.1-bench/main/README.md",
+      "quote": "度量方式：RapidOCR 读出图里的文字，与题目要求文本逐字比对；字符准确率 = 1 − 编辑距离/参考长度，",
+      "verified": true
+    },
+    {
+      "id": "recorded-vertical-set-scope",
+      "claim": "垂直套件是自建题面，不是公开榜单：9 个领域 26 道题，三家各跑两档分辨率共 156 张。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/qwen-image-2.1-bench/main/README.md",
+      "quote": "**自建、不是公开榜单**，但每题都写明考点与判定项（[`prompts-vertical.json`](prompts-vertical.json)），分 9 个领域。 三家各跑两档分辨率：统一的 1024²（可横向比）+ 各家推荐分辨率（Qwen / SenseNova 2048²、FLUX 1536），共 **156 张**。",
+      "verified": true
+    },
+    {
+      "id": "recorded-one-image-single-seed",
+      "claim": "本次实测每题只出 1 张、单 seed，是抽样体检而不是榜单成绩，n=4~7 时 ±1 题就是 ±14%。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/qwen-image-2.1-bench/main/README.md",
+      "quote": "- 每题**只出 1 张、单 seed**，是抽样体检不是榜单成绩；n=4~7 时 ±1 题就是 ±14%。",
+      "verified": true
+    },
+    {
+      "id": "recorded-vertical-timings-excluded",
+      "claim": "后补的 8 道垂直题用了更省显存的 sequential offload 档，单张 97 s（1024²）/ 208 s（2048²），耗时与首轮不可比，因此不并入耗时表。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/qwen-image-2.1-bench/main/README.md",
+      "quote": "offload 档只改权重换进换出的时机、不改采样计算， 同 seed 下出图质量不受影响（新增题的文字命中与首轮同量级，见上表），但**耗时不可比**，所以不进上表。",
+      "verified": true
+    },
+    {
+      "id": "recorded-different-step-counts",
+      "claim": "三家没有跑在相同的步数上（Qwen 20 / SenseNova 8 / FLUX 4），口径是「各自最佳配置」而不是「同预算」。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/qwen-image-2.1-bench/main/README.md",
+      "quote": "三家没跑在完全相同的步数上：各自用服务默认（Qwen 20 / SenseNova 8 / FLUX 4）",
+      "verified": true
+    }
+  ]
+}

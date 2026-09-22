@@ -8,7 +8,9 @@
     <span class="chip">{{ this }}</span>
 {{/each}}
     <span>{{ topic.reading_minutes }} {{ t.readMinutes }}</span>
-    <a href="{{ topic.href }}">{{ t.topicPage }}</a>
+{{#if topic.topic_href}}
+    <a href="{{ topic.topic_href }}">{{ t.topicPage }}</a>
+{{/if}}
   </div>
 
   <section class="prose">

@@ -460,6 +460,9 @@ function buildTopicView(topic, ctx, lang = 'zh') {
       headings: article ? extractHeadings(article) : [],
       url: ctx.siteUrl(english ? articlePath : `${pathPrefix}topics/${topic.slug}/`),
       href: ctx.href(english ? articlePath : `${pathPrefix}topics/${topic.slug}/`),
+      // There is no English topic page — key_facts and evidence claims are written in Chinese — so on
+      // the English side the blog article has no "topic page" to link to and must not link to itself.
+      topic_href: english ? '' : ctx.href(`topics/${topic.slug}/`),
       blog_href: ctx.href(articlePath),
       blog_url: ctx.siteUrl(articlePath),
       // An English page shows the English card: the card is a title card, so the Chinese one would
