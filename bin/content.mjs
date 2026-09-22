@@ -8,6 +8,7 @@
 //   content serve [--port 4173]
 //   content --help
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build, loadConfig, scaffoldTopic } from '../src/build.mjs';
 import { gitPublish, publishReport, readManifest } from '../src/publish.mjs';
@@ -123,12 +124,18 @@ async function main() {
         });
       }
       if (flags.git || flags['dry-run']) {
-        gitPublish({
-          root: ROOT,
-          dryRun: Boolean(flags['dry-run']),
-          message: `content: publish${rest.length ? ` ${rest.join(', ')}` : ''}`,
-          log: console.log,
-        });
+        // A build can be inspected from a copy that is not a repository (a mirrored
+        // workspace, a CI scratch dir). Report that instead of throwing.
+        if (!fs.existsSync(path.join(ROOT, '.git'))) {
+          console.log('git: 当前目录不是 git 仓库，跳过提交');
+        } else {
+          gitPublish({
+            root: ROOT,
+            dryRun: Boolean(flags['dry-run']),
+            message: `content: publish${rest.length ? ` ${rest.join(', ')}` : ''}`,
+            log: console.log,
+          });
+        }
       }
       break;
     }
