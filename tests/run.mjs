@@ -13,6 +13,7 @@ import { extractHeadings, renderMarkdown, toPlainText } from '../src/markdown.mj
 import { renderTemplate } from '../src/template.mjs';
 import { parseYaml } from '../src/yaml.mjs';
 import { verifyAll, verifyTopic } from '../src/verify.mjs';
+import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -314,6 +315,31 @@ test('verify: the real topics pass the gate offline', () => {
   const { reports, ok } = verifyAll(ROOT, { topicsDir: 'topics' });
   assert.ok(reports.length >= 1);
   assert.equal(ok, true, JSON.stringify(reports.flatMap((r) => r.problems)));
+});
+
+// --- hf (publish targeting) -------------------------------------------------
+// Only the pure decisions are tested here: the upload itself needs a token and a
+// network, and a suite that fails when the Hub is slow is a suite people skip.
+test('hf: an explicit hf_repo wins over the configured owner', () => {
+  assert.equal(resolveHfTarget('ml-sharp', { hf_repo: 'acme/elsewhere' }, { huggingface: { owner: 'shi9214' } }), 'acme/elsewhere');
+  assert.equal(resolveHfTarget('ml-sharp', {}, { huggingface: { owner: 'shi9214' } }), 'shi9214/ml-sharp');
+});
+
+test('hf: a missing owner is an error, not a silent wrong namespace', () => {
+  assert.throws(() => resolveHfTarget('ml-sharp', {}, {}), /no Hugging Face owner configured/);
+});
+
+test('hf: only huggingface artifacts are selected, and a slug filters them', () => {
+  const manifest = {
+    artifacts: [
+      { kind: 'huggingface', path: 'huggingface/ml-sharp/README.md' },
+      { kind: 'huggingface', path: 'huggingface/other/README.md' },
+      { kind: 'site', path: 'site/index.html' },
+      { kind: 'deck', path: 'deck/ml-sharp/deck.pptx' },
+    ],
+  };
+  assert.equal(hfArtifacts(manifest).length, 2);
+  assert.deepEqual(hfArtifacts(manifest, ['ml-sharp']).map((a) => a.path), ['huggingface/ml-sharp/README.md']);
 });
 
 serverProc.kill();

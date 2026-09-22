@@ -17,5 +17,9 @@
   "publish": {
     "site": "github-pages",
     "sitemapRoot": true
+  },
+  "huggingface": {
+    "owner": "shi9214",
+    "type": "dataset"
   }
 }

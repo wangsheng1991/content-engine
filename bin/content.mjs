@@ -14,6 +14,7 @@ import { gitPublish, publishReport, readManifest } from '../src/publish.mjs';
 import { serve } from '../src/serve.mjs';
 import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
 import { verifyAll } from '../src/verify.mjs';
+import { hfPublish } from '../src/hf.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -37,7 +38,7 @@ const HELP = `content — GitHub-first content engine
 用法:
   content build [slug...] [--all] [--site-only] [--out <dir>]
   content verify [slug...] [--online] [--strict]
-  content publish [--git] [--dry-run]
+  content publish [--git] [--dry-run] [--hf] [--repo <owner/name>] [--public]
   content new <slug> [--title "..."] [--date YYYY-MM-DD]
   content list
   content serve [--port 4173] [--dir <dir>]
@@ -107,6 +108,20 @@ async function main() {
     case 'publish': {
       const manifest = readManifest(ROOT, config);
       publishReport({ manifest, log: console.log });
+      if (flags.hf) {
+        const token = process.env.HF_TOKEN || process.env.HUGGINGFACE_TOKEN;
+        hfPublish({
+          root: ROOT,
+          config,
+          manifest,
+          slugs: rest.length ? rest : undefined,
+          repoOverride: typeof flags.repo === 'string' ? flags.repo : undefined,
+          isPrivate: !flags.public,
+          token,
+          dryRun: Boolean(flags['dry-run']),
+          log: console.log,
+        });
+      }
       if (flags.git || flags['dry-run']) {
         gitPublish({
           root: ROOT,

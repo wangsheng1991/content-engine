@@ -26,7 +26,8 @@
   ├─② 成稿      topics/<slug>/：source.yaml · article.md · README.md · slides.md · cta.yaml · video.yaml
   ├─③ 闸门      content verify        ← 不通过就不许往下走
   ├─④ 编译      content build         ← Tier A（可自动发布）/ Tier B（草稿）
-  ├─⑤ 发布      Tier A → git push → GitHub Pages    Tier B → 草稿（平台按凭证决定自动或人工）
+  ├─⑤ 发布      Tier A → git push → GitHub Pages ；content publish --hf → Hugging Face
+  │              Tier B → 草稿（平台按凭证决定自动或人工）
   └─⑥ 自检      浏览器核对线上页面（零 console/网络错误、深色、窄屏）
 ```
 
@@ -44,7 +45,7 @@
 | 成稿/编译 | `content-engine`（本仓库） | 零依赖、契约固定、Tier A/B 边界已经写进代码 | ✅ 已验证 |
 | **质量闸门** | **`content verify`（本仓库，本次新增）** | 把"高质量"从口号变成能被 CI 拦下来的检查 | ✅ 12 项测试全过 |
 | 站点/博客/RSS | `content build` → GitHub Pages | 推 main 即上线，已实测 | ✅ 线上 200 |
-| 技术资产 | GitHub 仓库（自动）；Hugging Face（**需 `HF_TOKEN`**） | 飞轮的锚点，downloads/likes 是可验证指标 | ⚠️ 缺 token |
+| 技术资产 | GitHub 仓库（自动）；Hugging Face（`content publish --hf`） | 飞轮的锚点，downloads/likes 是可验证指标 | ✅ 已验证 |
 | PPT | pandoc → `deck.pptx` | 本机有 pandoc；输出过 `unzip -t` 校验 | ✅ 已验证 |
 | 视频 | `video.yaml` → storyboard.json + ffmpeg | 先只到脚本与分镜，别假装能一键出片 | ✅ 到脚本 |
 | 海外社媒排程 | RenVi：`ops/n8n-postiz`（n8n + Postiz，docker） | 走官方 API 排程 Pinterest/IG/TikTok/X/YouTube；已建好 | ⚠️ 待连账号 |
@@ -89,13 +90,26 @@
 | 要解锁的能力 | 需要的凭证 | 现状 | 补上之后 |
 |---|---|---|---|
 | 站点自动部署 | gh token（含 `workflow` scope） | ✅ 已具备 | 已解锁，推 main 即上线 |
-| HF 模型/数据集卡发布 | `HF_TOKEN` + HF 组织账号 | ❌ **缺** | 技术资产锚点可脚本化上传 |
+| HF 模型/数据集卡发布 | `HF_TOKEN` | ✅ **已具备**（2026-09-21，账号 `shi9214`） | 已解锁：`content publish --hf` 已验证可用 |
 | 外部页面稳定抓取 | `FIRECRAWL_API_KEY` | ❌ **缺** | 取证更快更稳（现在是 curl 顶替） |
 | 海外社媒排程 | Postiz API key + 各平台 OAuth | ⚠️ 基建已建，账号未连 | Pinterest/IG/TikTok/X/YouTube 自动排程 |
 | 小红书 | 浏览器登录态 | ❌ 本机 Chrome 未登录 | 生成与同步自动，**发布仍人工** |
 | Reddit | —（按规则不自动化） | 人工 | 只自动发现机会 |
 
-补的顺序：**`HF_TOKEN` 和 `FIRECRAWL_API_KEY` 各只要一步**（key vault），立刻解锁两个环节。
+**注意一个身份不一致**：GitHub 是 `wangsheng1991`，HF 是 `shi9214`。飞轮的两个锚点挂着两个不同名字，技术人群会把它当成两个人。要么统一，要么建一个 HF 组织当品牌锚点的家（`content.config.json` 的 `huggingface.owner` 一改就切换，`source.yaml` 里也可以逐主题写 `hf_repo` 覆盖）。
+
+补的顺序：**`FIRECRAWL_API_KEY` 一步**，然后定 HF 用哪个身份。
+
+### HF 发布怎么用
+
+```bash
+content publish --hf                      # 按 content.config.json 的 owner + 主题 slug 建仓并上传
+content publish --hf --dry-run            # 只看会做什么
+content publish --hf --repo <owner/name>  # 指定仓库
+content publish --hf --public             # 公开（默认私有，避免未经审阅就发出去）
+```
+
+默认行为：仓库不存在就建（私有）、上传卡片、**回读比对 sha256**，回读不一致就报失败——"上传成功"不算成功。token 只从环境变量读，从不打印。
 
 ---
 
@@ -112,14 +126,17 @@
 
 ## 7. 已验证 / 未验证
 
-**已验证（本次实测）**
+**已验证（实测）**
 - `content build` 编译全部主题；`deck.pptx` 由 pandoc 生成。
-- `content verify` 新增并通过 12 项测试（含"引文对不上源"、"源取不到不算通过"、"缺 cta 拦下"）；全套测试 18 项全过。
+- `content verify` 通过 12 项测试（含"引文对不上源"、"源取不到不算通过"、"缺 cta 拦下"）；全套测试 **21 项全过**。
+- `content verify --online` 对 ml-sharp **10/10 条 claim 回源逐字命中**。
 - `git push` → GitHub Actions → GitHub Pages，线上 `HTTP 200`。
+- **HF 发布全链路**：建仓 → 上传 → 回读 sha256 一致（4264B）→ 匿名访问 401（确认还是私有）。仓库：`shi9214/ml-sharp`。
 - Google 补全取证、Brave SERP 取证在真浏览器里跑通。
 
 **未验证（缺凭证或未接）**
-- Hugging Face 上传（缺 `HF_TOKEN`）。
 - Postiz 排程实际发出（账号未连）。
 - 视频只到脚本层，没有成品视频。
 - `unified-llm-api` 的图像生成（`agenthub` 未确认可装）。
+
+**一个必须点明的事实**：`shi9214/ml-sharp` 发布后 downloads 是 **0**。卡片本身不是资产——飞轮要用 downloads 当传播指标，HF 上放的必须是**权重或数据集**（评测集、失败案例集、LoRA），而不是"读书笔记"。`content publish --hf` 打通的是**通道**；下一件事是让通道里有值得下的东西。这一点和 `TOOL_RADAR.md` §12 的能力采购清单是同一件事的两面。
