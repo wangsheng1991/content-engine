@@ -182,7 +182,7 @@ curl -sSL https://docs.postiz.com/general/platforms/overview.md
 
 ---
 
-## 8. 已经打通：Bluesky（2026-09-22 实测）
+## 8. 已经打通：Bluesky，以及接好待凭证的 Dev.to（2026-09-22 实测）
 
 **为什么从它开始**：Bluesky 是这套平台里**唯一一个不需要注册开发者应用、不需要 OAuth 跳转、不需要平台审核**的。
 app password 在账号自己的设置里生成，官方 AT Protocol 接口直接收，所以整条链路就是一个凭证加两次 HTTP 调用。
@@ -199,6 +199,29 @@ content publish --bluesky <slug> --dry-run  # 只打印文案与字符数，不�
   匿名调 `public.api.bsky.app` 独立回读确认帖子存在、正文与链接都对
 - 两个只有踩过才知道的坑，都已写进测试：**Bluesky 按 grapheme 计长度**（一个 emoji 算 1 不算 4），
   **链接 facet 用 UTF-8 字节偏移**（不是字符偏移 —— 中文/俄文内容会错位）
+
+### 8.2 Dev.to：代码已就绪，只差一个 key
+
+**为什么是它**：长文、markdown、**一个 API key 就够**（账号自己生成，无审核、无开发者应用、无 OAuth），
+是这批平台里唯一能把 content-engine 的长文原样送出去的地方。§9 的第二行平台里它门槛最低。
+
+```
+content publish --devto <slug>              # 发布并回读公开接口确认
+content publish --devto <slug> --draft      # 先存草稿，不公开
+content publish --devto <slug> --dry-run    # 只打印标题/标签/canonical，不联系网络
+```
+
+- 实现：`src/devto.mjs`，与 `--hf` / `--bluesky` 同形状 —— curl 传输、凭证只从环境变量读且从不打印、
+  **回读不到就不算发布成功**
+- 凭证：`DEVTO_API_KEY`（见 §10 的获取方式）
+- **正文不是另写一份**：直接取 `dist/blog/<slug>.md`，也就是站点上那一篇（含证据列表，
+  以及已经带 `?ref=<slug>` 的 CTA）——所以 Dev.to 上的副本不可能和站点上的正文漂移
+- `canonical_url` 指向站点自己的 `blog/<slug>/`，**故意不带 `?ref=`**：站点页面自己声明的 canonical 是
+  不带参数的版本，副本的 canonical 和原文不一致，搜索引擎可能反过来把副本当原文。
+  归因不受影响 —— 正文末尾那条 CTA 链接仍然是 `?ref=<slug>` 的
+- 已处理的规则（写进测试，免得线上吃 422）：标签**只能小写字母数字、最多 4 个、每个 ≤ 30 字符**
+  （`3D vision` → `3dvision`）；正文上限 10 万字符，超了提前报错而不是等接口拒绝
+- 端点核实：`POST https://dev.to/api/articles`（拿无效 key 打过去返回 **401**，说明路径与鉴权头 `api-key` 是对的，不是 404）
 
 ---
 
@@ -227,12 +250,22 @@ Postiz Cloud 帮你做完这些事，代价是钱和数据托管。
 | 事项 | 状态 |
 |---|---|
 | Bluesky 发布 | ✅ **已通**，见 §8 |
-| Dev.to / Hashnode / Medium（markdown、无开发者应用） | ⏳ 待办 —— 只需一个 API key，投入产出比最高 |
+| **Dev.to 长文发布** | 🟡 **代码已就绪**（`src/devto.mjs`，11 项测试），只差 `DEVTO_API_KEY` —— 见 §8.2 |
+| Hashnode / Medium（同类，markdown、无开发者应用） | ⏳ 待办 —— Dev.to 跑通后再照搬 |
 | Postiz 跑起来（docker）+ 公网回调 + 连账号 | ⏳ 待办，见 §5 坑 ① |
 | X / Instagram / TikTok / YouTube / Pinterest | ⏳ 待办 —— 每个都要先注册开发者应用，X 的 API 还要付费 |
 | **Reddit 半自动发帖** | ⏳ 待办，见下 |
 | 小红书 / 知乎 | ⛔ 不可自动化（无官方接口，只有浏览器自动化） |
 | 内容 → 注册/首图 的埋点（内容侧：CTA 带 `ref`） | ✅ **已做**，见下 |
+
+### Dev.to 的 key 怎么拿（只有这一步需要你，约 1 分钟）
+
+1. 登录 [dev.to](https://dev.to) → 右上角头像 → **Settings** → **Extensions**
+2. 在 **DEV Community API Keys** 里生成一个（名字随便写，比如 `content-engine`）
+3. **不要贴进对话**。把它存到 `~/Desktop/project/key/paypay/env.txt`，加一行 `DEVTO_API_KEY=<生成的 key>`，
+   然后告诉我一声 —— 我写进 agent vault，跑 `content publish --devto ml-sharp` 真发一篇并回读确认。
+
+key 只在这里用一次，之后每次发布会从 vault 自动注入，永不出现在日志里。
 
 ### 归因（内容 → 注册 → 首图）
 

@@ -17,6 +17,7 @@ import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
 import { verifyAll } from '../src/verify.mjs';
 import { hfPublish } from '../src/hf.mjs';
 import { blueskyPublish } from '../src/bluesky.mjs';
+import { devtoPublish } from '../src/devto.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -40,7 +41,8 @@ const HELP = `content — GitHub-first content engine
 用法:
   content build [slug...] [--all] [--site-only] [--out <dir>]
   content verify [slug...] [--online] [--strict]
-  content publish [--git] [--dry-run] [--hf] [--bluesky [<slug>...]] [--repo <owner/name>] [--public]
+  content publish [--git] [--dry-run] [--hf] [--bluesky [<slug>...]] [--devto [<slug>...]] [--draft]
+                  [--repo <owner/name>] [--public]
   content new <slug> [--title "..."] [--date YYYY-MM-DD]
   content list
   content serve [--port 4173] [--dir <dir>]
@@ -51,9 +53,12 @@ const HELP = `content — GitHub-first content engine
   Tier A 产物（网站/GitHub/Hugging Face/RSS）可全自动发布；
   Tier B 产物（小红书/Reddit/X/知乎/PPT/视频脚本）一律停在草稿等人工确认。
 
-  content publish --bluesky <slug> 单列：Bluesky 是本套平台里唯一不需要注册开发者应用的，
-  凭证放 vault（BLUESKY_HANDLE / BLUESKY_APP_PASSWORD）即可发布，并回读公开接口确认。
-  先加 --dry-run 看文案。
+  content publish --bluesky <slug> 单列：Bluesky 是这套平台里唯一用账号自己的 app password
+  就能发的，凭证放 vault（BLUESKY_HANDLE / BLUESKY_APP_PASSWORD），发布后回读公开接口确认。
+
+  content publish --devto <slug> 发长文：只需一个 DEVTO_API_KEY（账号设置里自己生成，无审核）。
+  正文取 dist 里编译好的 blog/<slug>.md（含证据与已带 ?ref= 的 CTA），用 canonical_url 指回
+  自己的站点，搜索引擎的功劳记在站点上而不是复制品上。加 --draft 先存草稿，先加 --dry-run 看标题标签。
 
   content verify 是发布前的质量闸门：每条 claim 必须带一段能在它自己的
   source 里逐字找到的 quote。默认只做不需要联网的结构检查；加 --online
@@ -138,6 +143,20 @@ async function main() {
           slugs: blueSlugs,
           identifier: process.env.BLUESKY_HANDLE || process.env.BLUESKY_IDENTIFIER,
           password: process.env.BLUESKY_APP_PASSWORD,
+          dryRun: Boolean(flags['dry-run']),
+          log: console.log,
+        });
+      }
+      if (flags.devto) {
+        // Same argument-parser quirk as --bluesky: a bare slug lands in `rest`.
+        const devtoSlugs = [...(typeof flags.devto === 'string' ? [flags.devto] : []), ...rest];
+        devtoPublish({
+          root: ROOT,
+          config,
+          manifest,
+          slugs: devtoSlugs,
+          apiKey: process.env.DEVTO_API_KEY,
+          draft: Boolean(flags.draft),
           dryRun: Boolean(flags['dry-run']),
           log: console.log,
         });

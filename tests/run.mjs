@@ -16,6 +16,7 @@ import { verifyAll, verifyTopic } from '../src/verify.mjs';
 import { withRef } from '../src/util.mjs';
 import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
 import { POST_LIMIT, blueskyPublish, composePost, createSession, graphemeLength, linkFacets, topicLink } from '../src/bluesky.mjs';
+import { BODY_MAX, TAG_LIMIT, TAG_MAX, composeArticle, devtoArtifacts, devtoPublish, devtoTags, stripFrontMatter } from '../src/devto.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -448,6 +449,104 @@ test('bluesky: a dry run prints what it would send and contacts nothing', () => 
   assert.ok(lines.some((line) => line.includes('dry-run')), 'a dry run must say so');
   assert.ok(lines.some((line) => line.includes('/topics/ml-sharp/')), 'the post must name its own page');
   assert.ok(lines.some((line) => /\/300 字符/.test(line)), 'the length must be shown before publishing');
+});
+
+// --- devto ------------------------------------------------------------------
+// Dev.to needs one API key and nothing else, which makes it the second platform the chain can
+// actually reach. What is asserted here is the part a 422 would otherwise teach us in production:
+// tags are strictly lowercase alphanumeric, the body must be the compiled article rather than a
+// file with front matter, and the canonical URL must carry the same `ref` as every other route.
+
+const DEVTO_CONFIG = { site: { baseUrl: 'https://example.test' }, paths: { topics: 'topics', out: '' } };
+
+test('devto: tags are made legal instead of failing the publish', () => {
+  assert.deepEqual(devtoTags(['3D vision', 'Apple', 'gaussian splatting']), ['3dvision', 'apple', 'gaussiansplatting']);
+  assert.deepEqual(devtoTags(['apple', 'Apple']), ['apple'], 'case-folded duplicates collapse');
+  assert.deepEqual(devtoTags(['x'.repeat(TAG_MAX + 1), 'ok']), ['ok'], 'an over-long tag is dropped, not truncated');
+  assert.equal(devtoTags(['a', 'b', 'c', 'd', 'e']).length, TAG_LIMIT, 'never more than four');
+  assert.deepEqual(devtoTags([]), []);
+  assert.deepEqual(devtoTags(undefined), []);
+});
+
+test('devto: front matter is stripped, since the API takes a body and not a file', () => {
+  assert.equal(stripFrontMatter('---\ntitle: "x"\nslug: demo\n---\n\n# Body\n'), '# Body\n');
+  assert.equal(stripFrontMatter('# Body\n'), '# Body\n');
+  assert.equal(stripFrontMatter(''), '');
+});
+
+test('devto: the article points search engines back at the site, while the call to action keeps the ref', () => {
+  const article = composeArticle({
+    slug: 'demo',
+    source: { title: 'Demo', summary: 'One\n  line  only', tags: ['3D vision', 'Apple'] },
+    markdown: '---\ntitle: "Demo"\n---\n\n# Body\n\nGo to https://www.dlss5nvidia.com/?ref=demo\n',
+    config: DEVTO_CONFIG,
+  });
+  assert.equal(article.title, 'Demo');
+  assert.equal(article.canonical_url, 'https://example.test/blog/demo/', 'the canonical must match what the site itself declares');
+  assert.equal(article.description, 'One line only');
+  assert.deepEqual(article.tags, ['3dvision', 'apple']);
+  assert.equal(article.published, true);
+  assert.ok(article.body_markdown.startsWith('# Body'), 'the body is the compiled article');
+  assert.ok(!article.body_markdown.includes('title: "Demo"'), 'front matter must not be sent');
+  assert.ok(article.body_markdown.includes('?ref=demo'), 'the call to action keeps its ref');
+});
+
+test('devto: an empty or oversized article is refused before any network call', () => {
+  assert.throws(() => composeArticle({ slug: 'x', source: { title: 'X' }, markdown: '---\na: 1\n---\n', config: DEVTO_CONFIG }), /文章是空的/);
+  assert.throws(() => composeArticle({ slug: 'x', source: { title: 'X' }, markdown: 'y'.repeat(BODY_MAX + 1), config: DEVTO_CONFIG }), /上限/);
+});
+
+test('devto: only compiled markdown articles are candidates, and a slug is honoured', () => {
+  const manifest = {
+    artifacts: [
+      { path: 'blog/a.md', kind: 'blog' },
+      { path: 'site/blog/a/index.html', kind: 'blog' },
+      { path: 'huggingface/a/README.md', kind: 'huggingface' },
+      { path: 'site/topics/b/index.html', kind: 'site' },
+    ],
+  };
+  assert.deepEqual(devtoArtifacts(manifest, undefined).map((a) => a.path), ['blog/a.md']);
+  assert.deepEqual(devtoArtifacts(manifest, ['a']).map((a) => a.path), ['blog/a.md']);
+  assert.deepEqual(devtoArtifacts(manifest, ['b']), []);
+  assert.deepEqual(devtoArtifacts(undefined, undefined), []);
+});
+
+test('devto: publishing fails on a missing key or a missing build, before any network call', () => {
+  assert.throws(() => devtoPublish({ root: ROOT, config: DEVTO_CONFIG, manifest: { artifacts: [] }, slugs: [] }), /缺少凭证/);
+  assert.throws(
+    () => devtoPublish({ root: ROOT, config: DEVTO_CONFIG, manifest: { artifacts: [] }, slugs: [], apiKey: 'k', dryRun: true }),
+    /先跑 content build/,
+  );
+  assert.throws(
+    () => devtoPublish({ root: ROOT, config: DEVTO_CONFIG, manifest: { artifacts: [] }, slugs: ['demo'], apiKey: 'k' }),
+    /没有编译好的文章/,
+  );
+});
+
+test('devto: a dry run prints the title, tags and canonical URL, and contacts nothing', () => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'devto-'));
+  fs.mkdirSync(path.join(outDir, 'blog'), { recursive: true });
+  fs.writeFileSync(path.join(outDir, 'blog', 'ml-sharp.md'), '---\ntitle: "x"\n---\n\n# Body\n\nSee https://www.dlss5nvidia.com/?ref=ml-sharp\n');
+
+  const config = { site: { baseUrl: 'https://example.test' }, paths: { topics: 'topics', out: outDir } };
+  const lines = [];
+  const result = devtoPublish({
+    root: ROOT,
+    config,
+    manifest: { artifacts: [{ path: 'blog/ml-sharp.md', kind: 'blog', tier: 'A' }] },
+    slugs: [],
+    dryRun: true,
+    log: (line) => lines.push(String(line)),
+  });
+  fs.rmSync(outDir, { recursive: true, force: true });
+
+  assert.equal(result.ok, true);
+  const printed = lines.join('\n');
+  assert.ok(lines.some((line) => line.includes('dry-run')), 'a dry run must say so');
+  assert.match(printed, /title:\s+SHARP/);
+  assert.match(printed, /canonical:\s+https:\/\/example\.test\/blog\/ml-sharp\/$/m);
+  assert.match(printed, /tags:\s+\S/, 'the tags that will be submitted must be visible');
+  assert.match(printed, /# Body/, 'the body preview comes from the compiled article');
 });
 
 serverProc.kill();

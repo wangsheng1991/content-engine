@@ -93,6 +93,7 @@
 | HF 模型/数据集卡发布 | `HF_TOKEN` | ✅ **已具备**（2026-09-21，账号 `shi9214`） | 已解锁：`content publish --hf` 已验证可用 |
 | 外部页面稳定抓取 | `FIRECRAWL_API_KEY` | ❌ **缺** | 取证更快更稳（现在是 curl 顶替） |
 | Bluesky 发布 | `BLUESKY_HANDLE` + `BLUESKY_APP_PASSWORD` | ✅ **已具备**（vault） | 已解锁：`content publish --bluesky <slug>` 已验证可用（2026-09-22） |
+| Dev.to 长文分发 | `DEVTO_API_KEY`（账号设置里自己生成，无审核） | ❌ **缺**（代码已就绪） | 长文带上 canonical 发到 Dev.to：`content publish --devto <slug>`，见 `docs/SOCIAL_STACK.md` §8.2 |
 | 其它社媒 | 各平台注册开发者应用（X 的 API 还要付费） | ❌ **未做** | 见 `docs/SOCIAL_STACK.md` §9 —— 自托管不省这一步 |
 | 海外社媒排程 | Postiz API key + 各平台 OAuth | ⚠️ 基建已建，账号未连 | Pinterest/IG/TikTok/X/YouTube 自动排程 |
 | 小红书 | 浏览器登录态 | ❌ 本机 Chrome 未登录 | 生成与同步自动，**发布仍人工** |
@@ -113,6 +114,17 @@ content publish --hf --public             # 公开（默认私有，避免未经
 
 默认行为：仓库不存在就建（私有）、上传卡片、**回读比对 sha256**，回读不一致就报失败——"上传成功"不算成功。token 只从环境变量读，从不打印。
 
+### Dev.to 发布怎么用
+
+```bash
+content publish --devto <slug>            # 发长文，回读公开接口确认
+content publish --devto <slug> --draft    # 先存草稿
+content publish --devto <slug> --dry-run  # 只看标题/标签/canonical
+```
+
+正文取 `dist/blog/<slug>.md`（站点上那一篇，含证据与 `?ref=` 的 CTA），`canonical_url` 指回站点。
+凭证 `DEVTO_API_KEY` 同样只从环境变量读，从不打印；回读不到不算成功。
+
 ---
 
 ## 6. 边界（写死，免得反复讨论）
@@ -130,13 +142,15 @@ content publish --hf --public             # 公开（默认私有，避免未经
 
 **已验证（实测）**
 - `content build` 编译全部主题；`deck.pptx` 由 pandoc 生成。
-- `content verify` 通过 12 项测试（含"引文对不上源"、"源取不到不算通过"、"缺 cta 拦下"）；全套测试 **21 项全过**。
+- `content verify` 通过 12 项测试（含"引文对不上源"、"源取不到不算通过"、"缺 cta 拦下"）；全套测试 **41 项全过**（2026-09-22）。
+- Bluesky 真实发布一条并匿名回读确认（256/300 字符，facet 字节偏移正确）。
 - `content verify --online` 对 ml-sharp **10/10 条 claim 回源逐字命中**。
 - `git push` → GitHub Actions → GitHub Pages，线上 `HTTP 200`。
 - **HF 发布全链路**：建仓 → 上传 → 回读 sha256 一致（4264B）→ 匿名访问 401（确认还是私有）。仓库：`shi9214/ml-sharp`。
 - Google 补全取证、Brave SERP 取证在真浏览器里跑通。
 
 **未验证（缺凭证或未接）**
+- **Dev.to 的真实发布**（代码与测试已就绪，缺 `DEVTO_API_KEY`；端点已用无效 key 验证返回 401）。
 - Postiz 排程实际发出（账号未连）。
 - 视频只到脚本层，没有成品视频。
 - `unified-llm-api` 的图像生成（`agenthub` 未确认可装）。
