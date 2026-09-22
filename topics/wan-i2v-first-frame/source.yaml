@@ -43,7 +43,7 @@ links:
 platforms:
   bluesky:
     text: |
-      Wan 2.6 image-to-video: one still plus one motion prompt, a 5-second MP4 back. Two of its parameters default to the expensive setting — audio is on (double price) and resolution is 1080P. A 5s silent 720P clip is ¥0.75; forgetting audio makes it ¥1.50.
+      Wan 2.6 image-to-video: one still, one prompt, 5 seconds of MP4. Its defaults are the expensive ones — audio on (2× the price), resolution 1080P. A 5s silent 720P clip costs ¥0.75; forget audio and it's ¥1.50.
   devto:
     title: "Image-to-video in three parameters: how a 5-second clip costs twice what it should"
     tags: [ai, video, tutorial, cost]
