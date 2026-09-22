@@ -7,6 +7,9 @@
   <div class="grid two">
 {{#each topics}}
     <article class="card">
+{{#if has_cover}}
+      <a class="card-cover" href="{{ href }}" tabindex="-1" aria-hidden="true"><img src="{{ cover_href }}" width="1200" height="630" alt=""></a>
+{{/if}}
       <p class="eyebrow">{{ kind }} · {{ date }}</p>
       <h3><a href="{{ href }}">{{ title }}</a></h3>
       <p>{{ subtitle }}</p>

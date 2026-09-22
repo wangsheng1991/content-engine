@@ -4,13 +4,26 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { build, loadConfig } from '../src/build.mjs';
+import {
+  COVER_HEIGHT,
+  COVER_WIDTH,
+  chromePath,
+  coverOf,
+  coverCardHtml,
+  englishCoverOf,
+  missingAssets,
+  planImages,
+  renderImages,
+} from '../src/images.mjs';
 import { extractHeadings, renderMarkdown, toPlainText } from '../src/markdown.mjs';
 import { renderTemplate } from '../src/template.mjs';
+import { loadTopic } from '../src/topic.mjs';
 import { parseYaml } from '../src/yaml.mjs';
 import { verifyAll, verifyTopic } from '../src/verify.mjs';
 import { withRef } from '../src/util.mjs';
@@ -22,6 +35,7 @@ import {
   TAG_MAX,
   absolutizeAssets,
   composeArticle,
+  coverUrlOf,
   devtoArtifacts,
   devtoPublish,
   devtoTags,
@@ -209,9 +223,25 @@ test('build: compiles every topic into tier A + tier B artifacts on disk', () =>
   assert.match(page, /<h1>/);
   assert.match(page, /<!doctype html>/i);
 
+  // A link preview needs all three: a title, a description and an image. Without the image every
+  // share on every platform renders as a blank card.
+  assert.match(page, /<meta property="og:title" content="[^"]+">/);
+  assert.match(page, /<meta property="og:description" content="[^"]+">/);
+  assert.match(page, /<meta property="og:image" content="https:\/\/[^"]+\/assets\/[^"]+\.png">/);
+  assert.match(page, /content="summary_large_image"/);
+  const coverFile = page.match(/<meta property="og:image" content="([^"]+)">/)[1].replace(/^https:\/\/[^/]+\/content-engine\//, '');
+  assert.ok(fs.existsSync(path.join(outDir, 'site', coverFile)), `the cover must ship with the site: ${coverFile}`);
+
+  // The cover is a title card, so the index shows it and the topic/blog pages do not — repeating
+  // the <h1> verbatim underneath itself is noise, not illustration.
+  const index = fs.readFileSync(path.join(outDir, 'site/index.html'), 'utf8');
+  assert.match(index, /class="card-cover"/);
+  assert.ok(!page.includes('class="card-cover"'), 'a topic page must not repeat its own title as an image');
+
   const feed = fs.readFileSync(path.join(outDir, 'site/feed.xml'), 'utf8');
   assert.ok(feed.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
   assert.match(feed, /<item>[\s\S]*<\/item>/);
+  assert.match(feed, /<enclosure url="https:\/\/[^"]+\.png" type="image\/png" length="[1-9]\d*"\/>/, 'the feed carries the cover, not just the text');
 
   const sitemap = fs.readFileSync(path.join(outDir, 'site/sitemap.xml'), 'utf8');
   assert.match(sitemap, /<loc>[^<]+\/blog\//);
@@ -678,6 +708,237 @@ test('devto: a dry run prints the title, tags and canonical URL, and contacts no
   assert.match(printed, /tags:\s+\S/, 'the tags that will be submitted must be visible');
   assert.match(printed, /# Body/, 'the body preview comes from the compiled article');
 });
+
+// --- images -----------------------------------------------------------------
+// The backends that need no model are tested for real; the model backend is tested against a local
+// server, because a machine's route to an image API is exactly as reliable as its route to
+// anything else, and a test that needs the network is a test nobody runs.
+const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+const IMAGE_SOURCE = [
+  'slug: demo',
+  'title: "单张图的秒级合成"',
+  'subtitle: "一段副标题"',
+  'kind: research',
+  'date: 2026-09-21',
+  'summary: "摘要"',
+  'tags: [甲, 乙]',
+  'platforms:',
+  '  devto:',
+  '    title: "Instant synthesis from a single image"',
+  '    tags: [ai, video]',
+  '',
+].join('\n');
+
+function imageTopic(source = IMAGE_SOURCE, { article = '## 它解决什么问题\n\n正文。\n' } = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'content-images-'));
+  fs.mkdirSync(path.join(dir, 'topics/demo/assets'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'topics/demo/source.yaml'), source);
+  fs.writeFileSync(path.join(dir, 'topics/demo/article.md'), article);
+  fs.writeFileSync(path.join(dir, 'topics/demo/evidence.json'), '{"topic":"demo","claims":[]}');
+  fs.writeFileSync(path.join(dir, 'topics/demo/cta.yaml'), 'label: "试试"\nurl: https://example.com\n');
+  return { dir, topic: loadTopic(dir, 'demo', { topicsDir: 'topics' }) };
+}
+
+test('images: every topic gets a cover, and an English one only when an English title exists', () => {
+  const { dir, topic } = imageTopic();
+  const jobs = planImages(topic, { site: { name: 'AI Research Notes', author: 'wang' } });
+  const ids = jobs.map((j) => j.id);
+  assert.deepEqual(ids, ['cover', 'cover-en']);
+  assert.equal(jobs[0].file, 'assets/og.png');
+  assert.equal(jobs[1].file, 'assets/og.en.png');
+  assert.equal(jobs[0].card.title, '单张图的秒级合成');
+  assert.equal(jobs[1].card.title, 'Instant synthesis from a single image');
+  assert.equal(jobs[0].width, COVER_WIDTH);
+  assert.equal(jobs[0].height, COVER_HEIGHT);
+  assert.equal(jobs[0].backend, 'card', 'the cover must not need a model to exist');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: a topic with no English title gets no English cover, and no model is asked for one', () => {
+  const { dir, topic } = imageTopic(IMAGE_SOURCE.replace('    title: "Instant synthesis from a single image"\n', ''));
+  const jobs = planImages(topic, {});
+  assert.deepEqual(jobs.map((j) => j.id), ['cover']);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: the English card takes the English tags, never the Chinese ones', () => {
+  const { dir, topic } = imageTopic();
+  const [, english] = planImages(topic, {});
+  assert.deepEqual(english.card.tags, ['ai', 'video']);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: a declared illustration is planned with a prompt and defaults to a model backend', () => {
+  const source = `${IMAGE_SOURCE}images:\n  - id: bill\n    prompt: "一张画着账单的插画"\n    caption: "账单"\n    width: 900\n    height: 600\n`;
+  const { dir, topic } = imageTopic(source);
+  const job = planImages(topic, {}).find((j) => j.id === 'bill');
+  assert.equal(job.file, 'assets/bill.png');
+  assert.equal(job.kind, 'illustration');
+  assert.equal(job.backend, 'qwen');
+  assert.equal(job.width, 900);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: whatever a title contains is escaped before it reaches the card', () => {
+  const html = coverCardHtml({
+    width: 1200,
+    height: 630,
+    card: { title: '<script>alert(1)</script>', kicker: 'a & b', dek: '', tags: [], author: '', site: 'S', lang: 'zh', date: '' },
+  });
+  assert.ok(!html.includes('<script>alert(1)</script>'), 'a title must never become markup');
+  assert.match(html, /&lt;script&gt;/);
+  assert.match(html, /a &amp; b/);
+});
+
+test('images: a Chinese title is not given the Latin negative tracking', () => {
+  const card = (title) => coverCardHtml({ width: 1200, height: 630, card: { title, kicker: '', dek: '', tags: [], author: '', site: '', lang: 'zh', date: '' } });
+  assert.match(card('中文标题'), /letter-spacing: 0;/);
+  assert.match(card('A Latin title'), /letter-spacing: -0\.025em;/);
+});
+
+test('images: an asset the article points at but that is absent is reported', () => {
+  const { dir, topic } = imageTopic(IMAGE_SOURCE, {
+    article: '## x\n\n![图](assets/missing.png)\n\n<img src="assets/also-missing.jpg">\n',
+  });
+  assert.deepEqual(missingAssets(topic), ['assets/also-missing.jpg', 'assets/missing.png']);
+  fs.writeFileSync(path.join(dir, 'topics/demo/assets/missing.png'), TINY_PNG);
+  assert.deepEqual(missingAssets(topic), ['assets/also-missing.jpg']);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: the cover on disk is found, and is absent until it is generated', () => {
+  const { dir, topic } = imageTopic();
+  assert.equal(coverOf(topic), null);
+  assert.equal(englishCoverOf(topic), null);
+  fs.writeFileSync(path.join(dir, 'topics/demo/assets/og.png'), TINY_PNG);
+  fs.writeFileSync(path.join(dir, 'topics/demo/assets/og.en.png'), TINY_PNG);
+  assert.equal(coverOf(topic).rel, 'og.png');
+  assert.equal(englishCoverOf(topic).rel, 'og.en.png');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: the qwen backend posts the prompt and writes the image the API returns', async () => {
+  const seen = [];
+  const server = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      seen.push({ url: req.url, auth: req.headers.authorization, body: JSON.parse(body) });
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ data: [{ b64_json: TINY_PNG.toString('base64') }] }));
+    });
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+
+  const config = {
+    site: { baseUrl: 'https://example.test' },
+    images: { backend: 'qwen', qwen: { endpoint: `http://127.0.0.1:${port}/v1/images`, apiKeyEnv: 'TEST_IMAGE_KEY', model: 'qwen-image-2.1' } },
+  };
+  process.env.TEST_IMAGE_KEY = 'test-key';
+  const { dir, topic } = imageTopic();
+  const topicWithPrompt = { ...topic, source: { ...topic.source, images: [{ id: 'illo', prompt: '一张插画', backend: 'qwen' }] } };
+
+  const result = await renderImages({ root: dir, config, topics: [topicWithPrompt], backend: 'qwen', only: ['illo'], log: () => {} });
+  server.close();
+
+  assert.equal(result.failed.length, 0, JSON.stringify(result.failed));
+  assert.equal(result.rendered.length, 1);
+  assert.deepEqual(fs.readFileSync(path.join(dir, 'topics/demo/assets/illo.png')), TINY_PNG);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].auth, 'Bearer test-key', 'the key comes from the environment, never the file');
+  assert.equal(seen[0].body.prompt, '一张插画');
+  assert.equal(seen[0].body.model, 'qwen-image-2.1');
+
+  const provenance = JSON.parse(fs.readFileSync(path.join(dir, 'topics/demo/images.json'), 'utf8'));
+  assert.equal(provenance.images[0].id, 'illo');
+  assert.equal(provenance.images[0].model, 'qwen-image-2.1');
+  assert.equal(provenance.images[0].prompt, '一张插画');
+  delete process.env.TEST_IMAGE_KEY;
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: a model backend with no endpoint says so instead of writing an empty file', async () => {
+  const { dir, topic } = imageTopic();
+  const result = await renderImages({ root: dir, config: { images: {} }, topics: [topic], backend: 'qwen', log: () => {} });
+  assert.equal(result.failed.length, 2, 'both the Chinese and the English cover report');
+  assert.match(result.failed[0].reason, /endpoint/);
+  assert.equal(fs.existsSync(path.join(dir, 'topics/demo/assets/og.png')), false);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: the command backend hands the prompt and the output path to any command', async () => {
+  const { dir, topic } = imageTopic();
+  const source = path.join(dir, 'tiny.png');
+  fs.writeFileSync(source, TINY_PNG);
+  const config = { images: { command: `cp '${source}' '{out}'` } };
+  const result = await renderImages({ root: dir, config, topics: [topic], backend: 'command', only: ['cover'], log: () => {} });
+  assert.deepEqual(result.failed, []);
+  assert.ok(fs.existsSync(path.join(dir, 'topics/demo/assets/og.png')));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: an image already on disk is kept, so a rebuild cannot overwrite a reviewed cover', async () => {
+  const { dir, topic } = imageTopic();
+  const file = path.join(dir, 'topics/demo/assets/og.png');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, Buffer.from('kept'));
+  const result = await renderImages({ root: dir, config: {}, topics: [topic], backend: 'command', only: ['cover'], log: () => {} });
+  assert.equal(result.rendered.length, 0);
+  assert.equal(result.skipped.length, 1);
+  assert.equal(fs.readFileSync(file, 'utf8'), 'kept');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: dev.to is handed the English cover when one exists', () => {
+  const { dir, topic } = imageTopic();
+  const config = { site: { baseUrl: 'https://example.test' } };
+  assert.equal(coverUrlOf(topic, config), undefined);
+  fs.writeFileSync(path.join(dir, 'topics/demo/assets/og.png'), TINY_PNG);
+  assert.equal(coverUrlOf(topic, config), 'https://example.test/assets/demo/og.png');
+  fs.writeFileSync(path.join(dir, 'topics/demo/assets/og.en.png'), TINY_PNG);
+  assert.equal(coverUrlOf(topic, config), 'https://example.test/assets/demo/og.en.png');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('images: a cover is sent to dev.to as cover_image, and a topic without one omits the field', () => {
+  const withCover = composeArticle({
+    slug: 'demo',
+    source: parseYaml(IMAGE_SOURCE),
+    markdown: '---\ntitle: x\n---\n\n# Body\n',
+    config: { site: { baseUrl: 'https://example.test' } },
+    coverUrl: 'https://example.test/assets/demo/og.en.png',
+  });
+  assert.equal(withCover.cover_image, 'https://example.test/assets/demo/og.en.png');
+  const without = composeArticle({
+    slug: 'demo',
+    source: parseYaml(IMAGE_SOURCE),
+    markdown: '---\ntitle: x\n---\n\n# Body\n',
+    config: { site: { baseUrl: 'https://example.test' } },
+  });
+  assert.ok(!('cover_image' in without));
+});
+
+if (chromePath()) {
+  test('images: the card backend really renders a 1200×630 png with the local Chrome', async () => {
+    const { dir, topic } = imageTopic();
+    const result = await renderImages({ root: dir, config: {}, topics: [topic], backend: 'card', only: ['cover'], log: () => {} });
+    assert.deepEqual(result.failed, []);
+    const png = path.join(dir, 'topics/demo/assets/og.png');
+    const header = fs.readFileSync(png).subarray(16, 24);
+    assert.equal(header.readUInt32BE(0), 1200);
+    assert.equal(header.readUInt32BE(4), 630);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+} else {
+  console.log('· 跳过 card 后端渲染测试：本机没有 Chrome/Chromium');
+}
 
 await Promise.all(pending);
 

@@ -9,6 +9,24 @@
 <link rel="canonical" href="{{ page.canonical }}">
 <link rel="alternate" type="application/rss+xml" title="{{ site.name }}" href="{{ base_path }}/feed.xml">
 <meta name="color-scheme" content="light dark">
+<meta property="og:type" content="{{ page.og_type }}">
+<meta property="og:site_name" content="{{ site.name }}">
+<meta property="og:locale" content="{{ site.locale }}">
+<meta property="og:title" content="{{ page.og_title }}">
+<meta property="og:description" content="{{ page.description }}">
+<meta property="og:url" content="{{ page.canonical }}">
+{{#if topic.has_cover}}
+<meta property="og:image" content="{{ topic.cover_url }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ topic.title }}">
+{{/if}}
+<meta name="twitter:card" content="{{#if topic.has_cover}}summary_large_image{{else}}summary{{/if}}">
+<meta name="twitter:title" content="{{ page.og_title }}">
+<meta name="twitter:description" content="{{ page.description }}">
+{{#if topic.has_cover}}
+<meta name="twitter:image" content="{{ topic.cover_url }}">
+{{/if}}
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111827'/%3E%3Ctext x='16' y='22' font-family='system-ui,sans-serif' font-size='15' font-weight='600' text-anchor='middle' fill='%23ffffff'%3EAI%3C/text%3E%3C/svg%3E">
 <script>
   (function () {
@@ -106,6 +124,10 @@ p { margin: 0 0 14px; }
 .prose pre code { font-size: 13px; line-height: 1.85; background: none; border: none; padding: 0; }
 .prose code { font-size: 13px; background: var(--gray-100); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
 .prose img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+/* The cover is a title card, so it is only shown where the title is not already on the page: the
+   index. On a topic or blog page it would repeat the <h1> verbatim. */
+.card-cover { display: block; margin: -20px -20px 16px; border-bottom: 1px solid var(--border); }
+.card-cover img { display: block; width: 100%; height: auto; border-radius: var(--radius-card) var(--radius-card) 0 0; }
 .evidence { list-style: none; padding: 0; margin: 0; }
 .evidence li { border: 1px solid var(--border); border-radius: var(--radius-card); padding: 16px 18px; margin: 0 0 12px; background: var(--surface); }
 .evidence .src { font-size: 12px; color: var(--fg-faint); margin: 8px 0 0; }

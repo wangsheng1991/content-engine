@@ -18,6 +18,19 @@
     "site": "github-pages",
     "sitemapRoot": true
   },
+  "images": {
+    "backend": "card",
+    "card": {
+      "width": 1200,
+      "height": 630
+    },
+    "qwen": {
+      "endpoint": "",
+      "model": "qwen-image-2.1",
+      "apiKeyEnv": "QWEN_API_KEY",
+      "timeoutMs": 180000
+    }
+  },
   "huggingface": {
     "owner": "shi9214",
     "type": "dataset"

@@ -16,8 +16,8 @@ a link.
                  ├── cta.yaml              the call to action
                  ├── slides.md             deck source
                  ├── video.yaml            storyboard + voiceover
-                 └── assets/
-                          │
+                 └── assets/               photos, and the generated covers
+                          │                 og.png / og.en.png, images.json
                  content build <slug>
                           │
    ┌──────────────┬───────┴────────┬──────────────┬─────────────┐
@@ -34,6 +34,7 @@ a link.
 node bin/content.mjs build                 # compile every topic into dist/
 node bin/content.mjs build ml-sharp        # compile one topic
 node bin/content.mjs build --site-only     # tier A only (what CI publishes)
+node bin/content.mjs images                # draw the missing covers
 node bin/content.mjs list                  # what each topic has
 node bin/content.mjs new my-topic          # scaffold a topic directory
 node bin/content.mjs serve                 # preview dist/site at :4173
@@ -43,10 +44,63 @@ node tests/run.mjs                         # the test suite (npm test)
 ```
 
 There are **no npm dependencies** — everything (YAML subset parser, markdown
-renderer, template engine, static server) is in `src/` against Node's standard
-library. The only external tool is `pandoc`, used when present to turn
-`deck/<slug>/slides.md` into a real `.pptx`; without it the markdown deck and the
-outline are still produced and the skip is reported in `dist/manifest.json`.
+renderer, template engine, static server, cover-image cards) is in `src/` against
+Node's standard library. The external tools are `pandoc`, used when present to
+turn `deck/<slug>/slides.md` into a real `.pptx`, and a local **Chrome/Chromium**,
+used by the default image backend; without either, the skip is reported in
+`dist/manifest.json` and everything else still builds.
+
+## Cover images
+
+Every topic gets a 1200×630 cover, and it is **source, not build output**: it
+lives in `topics/<slug>/assets/og.png` and is committed with the topic. CI builds
+the site on an ubuntu runner with no Chrome and no Chinese system font, so a
+cover drawn during the build would quietly disappear from the deployed site while
+looking fine locally.
+
+```bash
+node bin/content.mjs images                 # draw what is missing, keep the rest
+node bin/content.mjs images wan-i2v-first-frame --force
+node bin/content.mjs images --dry-run       # say what would be drawn, touch nothing
+```
+
+Three backends, picked per topic or per illustration:
+
+| Backend | What it does | Needs |
+| --- | --- | --- |
+| `card` (default) | Lays the title out as HTML and screenshots it with the local Chrome | a local Chrome/Chromium |
+| `qwen` | POSTs a prompt to an image API and writes what comes back | `images.qwen.endpoint` + a key in the named env var |
+| `command` | Runs any command you already have, with `{prompt} {out} {width} {height}` filled in | that command |
+
+The `card` backend is the reason a cover is never blocked on a model: it is
+deterministic, free, and the typographic rules (中西文间距、CJK 不做负字距、标题按长度
+分档) live in `src/images.mjs`. When a model is worth paying for, `qwen` is a thin
+adapter over the provider's HTTP contract — endpoint, headers, body and the path
+to the image in the response all come from `content.config.json`, so pointing it
+at a real service is a config change rather than a code change.
+
+An illustration is declared in `source.yaml` and referenced from `article.md` by
+its plain relative path:
+
+```yaml
+images:
+  - id: bill
+    prompt: "一张画着两张账单的插画，白色背景"
+    caption: "有声和无声的价目差"
+```
+
+```markdown
+![有声和无声的价目差](assets/bill.png)
+```
+
+`content build` reports any `assets/…` path an article points at that does not
+exist, and `topics/<slug>/images.json` records how each image was produced —
+backend, model, prompt, size and hash.
+
+Covers reach the platforms too: the Chinese card is the site's `og:image`, an
+English card is rendered whenever `platforms.devto.title` exists, and Dev.to
+receives the English one as `cover_image` (it re-hosts the file, so the site has
+to be deployed first — which is the order `content publish` already uses).
 
 ## Tier A vs Tier B
 
@@ -93,12 +147,13 @@ rather than guessing.
 ## Layout
 
 ```
-bin/content.mjs        CLI: build / publish / new / list / serve
+bin/content.mjs        CLI: build / images / publish / new / list / serve
 src/build.mjs          the compiler and the artifact manifest
 src/topic.mjs          topic loading + validation
 src/yaml.mjs           restricted YAML parser
 src/markdown.mjs       restricted markdown renderer
 src/template.mjs       mustache-subset template engine
+src/images.mjs         covers and illustrations: card / qwen / command backends
 src/deck.mjs           pandoc bridge (deck.pptx)
 src/publish.mjs        tier report + optional git commit/push
 src/serve.mjs          static preview server

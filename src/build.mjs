@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { ARTIFACT_TIERS, PLATFORMS } from './platforms.mjs';
 import { buildDeck, pandocPath } from './deck.mjs';
+import { coverOf, englishCoverOf, missingAssets } from './images.mjs';
 import { extractHeadings, renderMarkdown, toPlainText } from './markdown.mjs';
 import { renderTemplate } from './template.mjs';
 import { listTopicSlugs, loadTopic } from './topic.mjs';
@@ -88,8 +89,10 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
     // --- Tier A: the site, the blog, the feeds, GitHub, Hugging Face ---------
     const topicPage = page(ctx, view, {
       title: `${view.topic.title} · ${ctx.config.site.name}`,
+      og_title: view.topic.title,
       description: view.topic.summary_text,
       canonical: view.topic.url,
+      og_type: 'article',
     });
     emit(`site/topics/${slug}/index.html`, ctx.tpl('website/topic.html', topicPage), {
       kind: 'site',
@@ -100,8 +103,10 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
     if (view.article_html) {
       const blogPage = page(ctx, view, {
         title: `${view.topic.title} · Blog · ${ctx.config.site.name}`,
+        og_title: view.topic.title,
         description: view.topic.summary_text,
         canonical: view.topic.blog_url,
+        og_type: 'article',
       });
       emit(`site/blog/${slug}/index.html`, ctx.tpl('website/article.html', blogPage), {
         kind: 'blog',
@@ -125,6 +130,11 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
 
     const copied = copyDir(topic.assetsDir, path.join(ctx.out, 'site/assets', slug));
     if (copied) notes.push(`${slug}: copied ${copied} asset file(s)`);
+
+    // A cover is committed source, so a topic without one is a missing image on every platform that
+    // renders a link preview. Say it at build time rather than noticing it on someone else's timeline.
+    if (!view.topic.has_cover) notes.push(`${slug}: no cover image — run \`content images ${slug}\``);
+    for (const missing of missingAssets(topic)) notes.push(`${slug}: article.md references ${missing}, which does not exist`);
 
     if (!siteOnly) {
       // --- Tier B: drafts, deck, video script ---------------------------------
@@ -263,7 +273,10 @@ function countTiers(list) {
 
 /** Add the page-level pieces (head, footer, canonical) to a template payload. */
 function page(ctx, view, pageInfo) {
-  const data = { ...view, base_path: view.base_path ?? ctx.basePath, page: pageInfo };
+  const data = { ...view, base_path: view.base_path ?? ctx.basePath, page: { og_type: 'website', ...pageInfo } };
+  // A link preview has no room for the site suffix, so it gets the plain title unless a page says
+  // otherwise; the <title> element keeps the qualified one.
+  data.page.og_title = data.page.og_title ?? data.page.title;
   data.head_html = ctx.tpl('website/_head.html', data);
   data.footer_html = ctx.tpl('website/_footer.html', data);
   return data;
@@ -292,6 +305,8 @@ function buildTopicView(topic, ctx) {
     ? renderMarkdown(article).replace(/src="assets\//g, `src="${ctx.href(`assets/${topic.slug}/`)}`)
     : '';
   const plainArticle = toPlainText(article);
+  const cover = coverOf(topic);
+  const coverEn = englishCoverOf(topic);
   const evidence = (topic.evidence?.claims ?? []).map((claim) => ({
     ...claim,
     host: hostOf(claim.source),
@@ -328,6 +343,13 @@ function buildTopicView(topic, ctx) {
       href: ctx.href(`topics/${topic.slug}/`),
       blog_href: ctx.href(`blog/${topic.slug}/`),
       blog_url: ctx.siteUrl(`blog/${topic.slug}/`),
+      cover_href: cover ? ctx.href(`assets/${topic.slug}/${cover.rel}`) : '',
+      cover_url: cover ? ctx.siteUrl(`assets/${topic.slug}/${cover.rel}`) : '',
+      // Dev.to is an English platform and picks the cover up from its own field, so an English card
+      // is worth rendering whenever one exists; the Chinese card is the fallback, not the default.
+      cover_en_url: coverEn ? ctx.siteUrl(`assets/${topic.slug}/${coverEn.rel}`) : cover ? ctx.siteUrl(`assets/${topic.slug}/${cover.rel}`) : '',
+      has_cover: Boolean(cover),
+      cover_bytes: cover ? byteSize(path.join(topic.dir, cover.file)) : 0,
     },
     evidence,
     cta: topic.cta

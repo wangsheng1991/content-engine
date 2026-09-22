@@ -14,6 +14,9 @@
       <guid isPermaLink="true">{{ blog_url }}</guid>
       <pubDate>{{ date }}</pubDate>
       <description>{{ summary_text }}</description>
+{{#if cover_url}}
+      <enclosure url="{{ cover_url }}" type="image/png" length="{{ cover_bytes }}"/>
+{{/if}}
     </item>
 {{/each}}
   </channel>

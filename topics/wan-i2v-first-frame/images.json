@@ -1,0 +1,26 @@
+{
+  "topic": "wan-i2v-first-frame",
+  "generated_at": "2026-09-22T10:40:29Z",
+  "images": [
+    {
+      "id": "cover",
+      "file": "assets/og.png",
+      "kind": "cover",
+      "backend": "card",
+      "model": "html+chrome",
+      "size": "1200×630",
+      "bytes": 73487,
+      "sha256": "6747f657dbe9894c"
+    },
+    {
+      "id": "cover-en",
+      "file": "assets/og.en.png",
+      "kind": "cover",
+      "backend": "card",
+      "model": "html+chrome",
+      "size": "1200×630",
+      "bytes": 42930,
+      "sha256": "f629386dbe6975d9"
+    }
+  ]
+}

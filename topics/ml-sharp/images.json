@@ -1,0 +1,16 @@
+{
+  "topic": "ml-sharp",
+  "generated_at": "2026-09-22T10:40:29Z",
+  "images": [
+    {
+      "id": "cover",
+      "file": "assets/og.png",
+      "kind": "cover",
+      "backend": "card",
+      "model": "html+chrome",
+      "size": "1200×630",
+      "bytes": 64020,
+      "sha256": "38dc6a202a4fc370"
+    }
+  ]
+}

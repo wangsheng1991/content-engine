@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { englishCoverOf, coverOf } from './images.mjs';
 import { loadTopic } from './topic.mjs';
 import { joinUrl } from './util.mjs';
 
@@ -121,7 +122,7 @@ export function devtoArtifacts(manifest, slugs) {
  * One topic's article, ready for the API. The caller supplies the compiled markdown, so what is
  * sent cannot differ from what the site serves.
  */
-export function composeArticle({ slug, source, markdown, config }) {
+export function composeArticle({ slug, source, markdown, config, coverUrl }) {
   const title = String(source?.platforms?.devto?.title ?? source?.title ?? slug).trim();
   if (!title) throw new Error(`${slug}: 文章没有标题`);
   const body = absolutizeAssets(stripFrontMatter(markdown), slug, config);
@@ -134,6 +135,9 @@ export function composeArticle({ slug, source, markdown, config }) {
     published: true,
     canonical_url: canonicalUrl(slug, config),
     ...(description ? { description } : {}),
+    // Dev.to re-hosts the image off this absolute URL, so the site has to be deployed first —
+    // which is the order `content publish` already uses: git push, then the platform call.
+    ...(coverUrl ? { cover_image: coverUrl } : {}),
     // `platforms.devto.tags` wins when present: a Chinese topic's own tags are not legal Dev.to
     // tags at all (lowercase ASCII only), so without an override they publish as an empty list.
     tags: devtoTags(source?.platforms?.devto?.tags ?? source?.tags ?? []),
@@ -142,6 +146,16 @@ export function composeArticle({ slug, source, markdown, config }) {
 
 function oneLine(text) {
   return String(text).replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The cover to hand Dev.to: the English card when one exists, the Chinese one otherwise. Dev.to's
+ * audience reads English, so a Chinese card would be a published cover nobody can read.
+ */
+export function coverUrlOf(topic, config) {
+  const cover = englishCoverOf(topic) ?? coverOf(topic);
+  if (!cover) return undefined;
+  return `${joinUrl(config?.site?.baseUrl ?? '', 'assets', topic.slug)}/${cover.rel}`;
 }
 
 /** Read the article back from the public API: a write that cannot be seen is not a publish. */
@@ -174,7 +188,7 @@ export function devtoPublish({ root, config, manifest, slugs, apiKey, draft = fa
     const topic = loadTopic(root, slug, { topicsDir: config.paths?.topics });
     const outDir = path.isAbsolute(config.paths.out) ? config.paths.out : path.join(root, config.paths.out);
     const markdown = fs.readFileSync(path.join(outDir, artifact.path), 'utf8');
-    const article = composeArticle({ slug, source: topic.source, markdown, config });
+    const article = composeArticle({ slug, source: topic.source, markdown, config, coverUrl: coverUrlOf(topic, config) });
     return { slug, article: draft ? { ...article, published: false } : article };
   });
 
@@ -185,6 +199,7 @@ export function devtoPublish({ root, config, manifest, slugs, apiKey, draft = fa
       log(`title:     ${article.title}`);
       log(`tags:      ${article.tags.join(', ') || '（无）'}`);
       log(`canonical: ${article.canonical_url}`);
+      if (article.cover_image) log(`cover:     ${article.cover_image}`);
       log(`published: ${article.published}`);
       log('─'.repeat(60));
       log(article.body_markdown.split('\n').slice(0, 12).join('\n'));

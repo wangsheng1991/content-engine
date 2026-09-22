@@ -16,6 +16,7 @@ import { serve } from '../src/serve.mjs';
 import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
 import { verifyAll } from '../src/verify.mjs';
 import { hfPublish } from '../src/hf.mjs';
+import { BACKENDS, chromePath, coverOf, renderImages } from '../src/images.mjs';
 import { blueskyPublish } from '../src/bluesky.mjs';
 import { devtoPublish } from '../src/devto.mjs';
 
@@ -40,6 +41,7 @@ const HELP = `content — GitHub-first content engine
 
 用法:
   content build [slug...] [--all] [--site-only] [--out <dir>]
+  content images [slug...] [--backend card|qwen|command] [--only <id,...>] [--force] [--dry-run]
   content verify [slug...] [--online] [--strict]
   content publish [--git] [--dry-run] [--hf] [--bluesky [<slug>...]] [--devto [<slug>...]] [--draft]
                   [--repo <owner/name>] [--public]
@@ -53,12 +55,22 @@ const HELP = `content — GitHub-first content engine
   Tier A 产物（网站/GitHub/Hugging Face/RSS）可全自动发布；
   Tier B 产物（小红书/Reddit/X/知乎/PPT/视频脚本）一律停在草稿等人工确认。
 
+  content images 生成封面与插画，写进 topics/<slug>/assets/ —— 是随主题提交的源文件，不是
+  dist/ 产物。因为 CI 在 ubuntu 上编译站点，既没有 Chrome 也没有中文字体，构建期生成的图会
+  悄悄从线上站点消失。已有图片默认沿用，--force 才重画。
+  后端三选一：card（默认，用本机 Chrome 把标题排成 1200×630 的卡片截图，零依赖、不需要任何
+  模型）、qwen（把 prompt 发给图像 API，endpoint/model 在 content.config.json 的 images.qwen）、
+  command（把 {prompt} {out} {width} {height} 填进任意命令）。插画写在 source.yaml 的 images: 里，
+  正文用 assets/<id>.png 引用即可。
+
   content publish --bluesky <slug> 单列：Bluesky 是这套平台里唯一用账号自己的 app password
   就能发的，凭证放 vault（BLUESKY_HANDLE / BLUESKY_APP_PASSWORD），发布后回读公开接口确认。
 
   content publish --devto <slug> 发长文：只需一个 DEVTO_API_KEY（账号设置里自己生成，无审核）。
   正文取 dist 里编译好的 blog/<slug>.md（含证据与已带 ?ref= 的 CTA），用 canonical_url 指回
   自己的站点，搜索引擎的功劳记在站点上而不是复制品上。加 --draft 先存草稿，先加 --dry-run 看标题标签。
+  有封面时一并作为 cover_image 发过去（优先英文版封面），Dev.to 会把它转存到自己的 CDN，
+  所以站点要先部署好再发这一条。
 
   content verify 是发布前的质量闸门：每条 claim 必须带一段能在它自己的
   source 里逐字找到的 quote。默认只做不需要联网的结构检查；加 --online
@@ -177,6 +189,34 @@ async function main() {
       }
       break;
     }
+    case 'images': {
+      const slugs = rest.length ? rest : listTopicSlugs(ROOT, config.paths.topics);
+      const topics = slugs.map((slug) => loadTopic(ROOT, slug, { topicsDir: config.paths.topics }));
+      const backend = typeof flags.backend === 'string' ? flags.backend : undefined;
+      if (backend && !BACKENDS.includes(backend)) {
+        throw new Error(`未知的图像后端 "${backend}" —— 可选：${BACKENDS.join(' / ')}`);
+      }
+      if ((backend ?? config.images?.backend) === 'card' && !chromePath()) {
+        console.log('提示：本机没找到 Chrome/Chromium，card 后端需要它（可用 CHROME_PATH 指定）');
+      }
+      const result = await renderImages({
+        root: ROOT,
+        config,
+        topics,
+        backend,
+        only: typeof flags.only === 'string' ? flags.only.split(',') : [],
+        force: Boolean(flags.force),
+        dryRun: Boolean(flags['dry-run']),
+        log: console.log,
+      });
+      console.log('');
+      console.log(
+        `图像：新生成 ${result.rendered.length} 张，沿用 ${result.skipped.length} 张，失败 ${result.failed.length} 张`,
+      );
+      for (const item of result.failed) console.log(`  ✗ ${item.slug}/${item.id}：${item.reason}`);
+      console.log('图像写在 topics/<slug>/assets/ 里，是随主题一起提交的源文件 —— dist/ 每次重建都会清空。');
+      break;
+    }
     case 'new': {
       const slug = rest[0];
       if (!slug) throw new Error('usage: content new <slug>');
@@ -189,6 +229,7 @@ async function main() {
         const topic = loadTopic(ROOT, slug, { topicsDir: config.paths.topics });
         const parts = [
           `article ${topic.article ? '✓' : '—'}`,
+          `cover ${coverOf(topic) ? '✓' : '—'}`,
           `readme ${topic.readme ? '✓' : '—'}`,
           `slides ${topic.slides ? '✓' : '—'}`,
           `video ${topic.video ? '✓' : '—'}`,
