@@ -16,7 +16,24 @@ import { verifyAll, verifyTopic } from '../src/verify.mjs';
 import { withRef } from '../src/util.mjs';
 import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
 import { POST_LIMIT, blueskyPublish, composePost, createSession, graphemeLength, linkFacets, topicLink } from '../src/bluesky.mjs';
-import { BODY_MAX, TAG_LIMIT, TAG_MAX, composeArticle, devtoArtifacts, devtoPublish, devtoTags, stripFrontMatter } from '../src/devto.mjs';
+import {
+  BODY_MAX,
+  TAG_LIMIT,
+  TAG_MAX,
+  absolutizeAssets,
+  composeArticle,
+  devtoArtifacts,
+  devtoPublish,
+  devtoTags,
+  stripFrontMatter,
+} from '../src/devto.mjs';
+import {
+  DEFAULT_DURATION,
+  classifyTask,
+  generate as i2vGenerate,
+  mimeFor,
+  parseArgs as parseI2vArgs,
+} from '../scripts/wan-i2v.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -29,14 +46,20 @@ const SERVED_BODY = [
 
 let failures = 0;
 
+// Async cases are collected and awaited before the summary: a rejected promise that nobody waits
+// for would otherwise report as a pass and then crash the process after the totals are printed.
+const pending = [];
+
 function test(name, fn) {
-  try {
-    fn();
-    console.log(`✓ ${name}`);
-  } catch (error) {
-    failures += 1;
-    console.error(`✗ ${name}\n    ${error.message.split('\n').join('\n    ')}`);
-  }
+  pending.push(
+    (async () => {
+      await fn();
+      console.log(`✓ ${name}`);
+    })().catch((error) => {
+      failures += 1;
+      console.error(`✗ ${name}\n    ${error.message.split('\n').join('\n    ')}`);
+    }),
+  );
 }
 
 // --- yaml -------------------------------------------------------------------
@@ -451,6 +474,95 @@ test('bluesky: a dry run prints what it would send and contacts nothing', () => 
   assert.ok(lines.some((line) => /\/300 字符/.test(line)), 'the length must be shown before publishing');
 });
 
+// --- wan-i2v (image-to-video) -------------------------------------------------
+// The reproduction script behind topics/wan-i2v-first-frame/. What is asserted here is what the
+// official reference only implies: the endpoint has no synchronous mode, two of its parameters
+// change the bill and neither default is the cheap one, and a task that never finishes must be an
+// error rather than an empty file.
+
+test('wan-i2v: duration is an integer range, not a two-value enum', () => {
+  const base = ['--image', 'x.png', '--prompt', 'p'];
+  assert.equal(parseI2vArgs([...base, '--duration', '7']).duration, 7);
+  assert.equal(parseI2vArgs(base).duration, DEFAULT_DURATION);
+  assert.throws(() => parseI2vArgs([...base, '--duration', '16']), /整数秒/);
+  assert.throws(() => parseI2vArgs([...base, '--duration', '1']), /整数秒/);
+  assert.throws(() => parseI2vArgs([...base, '--duration', '5.5']), /整数秒/);
+  assert.throws(() => parseI2vArgs([...base, '--resolution', '480P']), /720P \/ 1080P/);
+  assert.throws(() => parseI2vArgs(['--prompt', 'p']), /--image/);
+});
+
+test('wan-i2v: sound is off unless asked for, because the API default is on and costs double', () => {
+  assert.equal(parseI2vArgs(['--image', 'x.png', '--prompt', 'p']).audio, false);
+  assert.equal(parseI2vArgs(['--image', 'x.png', '--prompt', 'p', '--audio', 'true']).audio, true);
+});
+
+test('wan-i2v: an unknown image format is refused before anything is uploaded', () => {
+  assert.equal(mimeFor('room.JPEG'), 'image/jpeg');
+  assert.equal(mimeFor('room.webp'), 'image/webp');
+  assert.throws(() => mimeFor('room.tiff'), /不认识的图片格式/);
+  assert.throws(() => mimeFor('room'), /不认识的图片格式/);
+});
+
+test('wan-i2v: task states are classified, and a dead task never becomes a video', () => {
+  assert.equal(classifyTask({ task_status: 'SUCCEEDED', video_url: 'https://x/v.mp4' }).state, 'done');
+  for (const status of ['PENDING', 'RUNNING']) {
+    assert.equal(classifyTask({ task_status: status }).state, 'waiting', status);
+  }
+  for (const status of ['FAILED', 'CANCELED', 'UNKNOWN']) {
+    assert.equal(classifyTask({ task_status: status }).state, 'failed', status);
+  }
+  assert.equal(classifyTask({}).state, 'failed', 'an unrecognised status is a failure, not a wait');
+});
+
+test('wan-i2v: the request carries the async header, the resolution and the silent flag', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wan-i2v-'));
+  const image = path.join(dir, 'room.png');
+  fs.writeFileSync(image, Buffer.from('not really a png'));
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+    if (String(url).includes('/video-synthesis')) return { json: async () => ({ output: { task_id: 'task_1' } }) };
+    return { json: async () => ({ output: { task_status: 'SUCCEEDED', video_url: 'https://example.test/v.mp4' } }) };
+  };
+  const result = await i2vGenerate({ image, prompt: 'slow dolly in', key: 'test-key', fetchImpl, sleepImpl: async () => {}, now: () => 0 });
+
+  const submit = calls[0];
+  assert.equal(submit.options.headers['X-DashScope-Async'], 'enable', 'without this header the call is rejected');
+  const body = JSON.parse(submit.options.body);
+  assert.equal(body.model, 'wan2.6-i2v-flash');
+  assert.deepEqual(body.parameters, { resolution: '720P', duration: 5, audio: false });
+  assert.ok(body.input.img_url.startsWith('data:image/png;base64,'), 'a local file is inlined, no upload step');
+  assert.equal(calls[1].url, 'https://dashscope.aliyuncs.com/api/v1/tasks/task_1');
+  assert.equal(result.polls, 1);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('wan-i2v: a task that never finishes is an error, not an empty file', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wan-i2v-'));
+  const image = path.join(dir, 'room.jpg');
+  fs.writeFileSync(image, Buffer.from('x'));
+  let polls = 0;
+  const fetchImpl = async (url) => {
+    if (String(url).includes('/video-synthesis')) return { json: async () => ({ output: { task_id: 'task_2' } }) };
+    polls += 1;
+    if (polls === 3) return { json: async () => ({ output: { task_status: 'FAILED', code: 'InvalidParameter' } }) };
+    return { json: async () => ({ output: { task_status: 'RUNNING' } }) };
+  };
+  await assert.rejects(() => i2vGenerate({ image, prompt: 'p', key: 'k', fetchImpl, sleepImpl: async () => {} }), /FAILED \(InvalidParameter\)/);
+
+  const stalls = async (url) => (
+    String(url).includes('/video-synthesis')
+      ? { json: async () => ({ output: { task_id: 'task_3' } }) }
+      : { json: async () => ({ output: { task_status: 'PENDING' } }) }
+  );
+  await assert.rejects(() => i2vGenerate({ image, prompt: 'p', key: 'k', fetchImpl: stalls, sleepImpl: async () => {} }), /等待超时/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('wan-i2v: a missing key fails before any request leaves the machine', async () => {
+  await assert.rejects(() => i2vGenerate({ image: 'x.png', prompt: 'p', key: '' }), /缺少凭证/);
+});
+
 // --- devto ------------------------------------------------------------------
 // Dev.to needs one API key and nothing else, which makes it the second platform the chain can
 // actually reach. What is asserted here is the part a 422 would otherwise teach us in production:
@@ -489,6 +601,24 @@ test('devto: the article points search engines back at the site, while the call 
   assert.ok(article.body_markdown.startsWith('# Body'), 'the body is the compiled article');
   assert.ok(!article.body_markdown.includes('title: "Demo"'), 'front matter must not be sent');
   assert.ok(article.body_markdown.includes('?ref=demo'), 'the call to action keeps its ref');
+});
+
+test('devto: topic-relative images become URLs a reader of the copy can actually fetch', () => {
+  const body = absolutizeAssets('看这张 ![输入](assets/input-render.jpg)\n\n<img src="assets/motion.jpg">', 'demo', DEVTO_CONFIG);
+  assert.match(body, /\]\(https:\/\/example\.test\/assets\/demo\/input-render\.jpg\)/);
+  assert.match(body, /src="https:\/\/example\.test\/assets\/demo\/motion\.jpg"/);
+  assert.equal(absolutizeAssets('![x](https://cdn.test/x.png)', 'demo', DEVTO_CONFIG), '![x](https://cdn.test/x.png)');
+});
+
+test('devto: a Chinese topic gets the English tags written for Dev.to, not an empty list', () => {
+  const article = composeArticle({
+    slug: 'demo',
+    source: { title: '演示', tags: ['视频生成', '图生视频'], platforms: { devto: { tags: ['ai', 'video generation'] } } },
+    markdown: '# Body\n',
+    config: DEVTO_CONFIG,
+  });
+  assert.deepEqual(article.tags, ['ai', 'videogeneration']);
+  assert.deepEqual(devtoTags(['视频生成']), [], 'a Chinese tag normalizes to nothing, which is why the override exists');
 });
 
 test('devto: an empty or oversized article is refused before any network call', () => {
@@ -548,6 +678,8 @@ test('devto: a dry run prints the title, tags and canonical URL, and contacts no
   assert.match(printed, /tags:\s+\S/, 'the tags that will be submitted must be visible');
   assert.match(printed, /# Body/, 'the body preview comes from the compiled article');
 });
+
+await Promise.all(pending);
 
 serverProc.kill();
 fs.rmSync(FIXTURE, { recursive: true, force: true });

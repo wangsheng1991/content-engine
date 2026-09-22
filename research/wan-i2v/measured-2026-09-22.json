@@ -1,0 +1,73 @@
+{
+  "measured_at": "2026-09-22",
+  "measured_by": "ffprobe 8.x, on the files as downloaded from the API",
+  "measurement_command": "ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,channels,sample_rate:format=duration,size -of json <file>",
+  "batch": "RenVi marketing video batch, generated 2026-06-17",
+  "request": {
+    "model": "wan2.6-i2v-flash",
+    "parameters_sent": {
+      "resolution": "720P",
+      "duration": 5
+    },
+    "parameters_not_sent": [
+      "audio"
+    ],
+    "consequence": "audio 的默认值是 true，所以这三条按「有声 720P」计费"
+  },
+  "clips": [
+    {
+      "file": "video-出租屋改造后.mp4",
+      "input_image": "raw/after1.jpg",
+      "video": {
+        "codec": "h264",
+        "width": 1108,
+        "height": 830,
+        "pixels": 919640
+      },
+      "audio_track": {
+        "codec": "aac",
+        "channels": 2,
+        "sample_rate": 44100
+      },
+      "duration_seconds": 5.007,
+      "bytes": 5562112,
+      "sha256": "0d7fe0be6dcfb64df05187d2f5914c9929721f02b3abd37b73b7063ac07bc6be"
+    },
+    {
+      "file": "video-奶油风.mp4",
+      "input_image": "public/style-refs/cream.jpg",
+      "video": {
+        "codec": "h264",
+        "width": 1108,
+        "height": 830,
+        "pixels": 919640
+      },
+      "audio_track": {
+        "codec": "aac",
+        "channels": 2,
+        "sample_rate": 44100
+      },
+      "duration_seconds": 5.007,
+      "bytes": 5662870,
+      "sha256": "5bdf66464cc23210b3fd8c5212cc367acbeaadd8aab6ec03c3c670caf8488acf"
+    },
+    {
+      "file": "video-日式.mp4",
+      "input_image": "public/style-refs/japanese.jpg",
+      "video": {
+        "codec": "h264",
+        "width": 1108,
+        "height": 830,
+        "pixels": 919640
+      },
+      "audio_track": {
+        "codec": "aac",
+        "channels": 2,
+        "sample_rate": 44100
+      },
+      "duration_seconds": 5.007,
+      "bytes": 4605235,
+      "sha256": "660f6f82c74bfb2593b624b7aaeb949927223e69e72b1cf031fab34c3dee2b19"
+    }
+  ]
+}

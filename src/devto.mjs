@@ -84,6 +84,18 @@ export function canonicalUrl(slug, config) {
   return `${joinUrl(config?.site?.baseUrl ?? '', 'blog', slug)}/`;
 }
 
+/**
+ * Rewrite topic-relative image paths to the site's absolute asset URLs. The article's own copy of
+ * `assets/photo.png` resolves on the site (the build expands it) and silently 404s everywhere else,
+ * so a cross-post needs the URL the reader's browser can actually fetch.
+ */
+export function absolutizeAssets(markdown, slug, config) {
+  const base = `${joinUrl(config?.site?.baseUrl ?? '', 'assets', slug)}/`;
+  return String(markdown ?? '')
+    .replace(/(\]\()assets\//g, `$1${base}`)
+    .replace(/(\bsrc=")assets\//g, `$1${base}`);
+}
+
 /** The site's copy of the article, front matter removed — Dev.to takes body markdown, not a file. */
 export function stripFrontMatter(markdown) {
   const text = String(markdown ?? '');
@@ -112,7 +124,7 @@ export function devtoArtifacts(manifest, slugs) {
 export function composeArticle({ slug, source, markdown, config }) {
   const title = String(source?.platforms?.devto?.title ?? source?.title ?? slug).trim();
   if (!title) throw new Error(`${slug}: 文章没有标题`);
-  const body = stripFrontMatter(markdown);
+  const body = absolutizeAssets(stripFrontMatter(markdown), slug, config);
   if (!body.trim()) throw new Error(`${slug}: 文章是空的 —— 先 content build`);
   if (body.length > BODY_MAX) throw new Error(`${slug}: 正文 ${body.length} 字符，超过 Dev.to 的 ${BODY_MAX} 上限`);
   const description = oneLine(source?.summary ?? '').slice(0, 200);
@@ -122,7 +134,9 @@ export function composeArticle({ slug, source, markdown, config }) {
     published: true,
     canonical_url: canonicalUrl(slug, config),
     ...(description ? { description } : {}),
-    tags: devtoTags(source?.tags ?? []),
+    // `platforms.devto.tags` wins when present: a Chinese topic's own tags are not legal Dev.to
+    // tags at all (lowercase ASCII only), so without an override they publish as an empty list.
+    tags: devtoTags(source?.platforms?.devto?.tags ?? source?.tags ?? []),
   };
 }
 

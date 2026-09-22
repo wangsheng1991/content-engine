@@ -1,0 +1,112 @@
+{
+  "topic": "wan-i2v-first-frame",
+  "checked_at": "2026-09-22",
+  "notes": "官方文档引文来自阿里云百炼（Model Studio）中文文档，读取日期 2026-09-22；自有量测引文来自本仓库已发布的脚本与量测日志，可自行复算。",
+  "claims": [
+    {
+      "id": "async-only",
+      "claim": "图生视频接口只支持异步调用：请求必须带 X-DashScope-Async: enable。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "HTTP 请求只支持异步， 必须设置为 enable",
+      "verified": true
+    },
+    {
+      "id": "sync-call-rejected",
+      "claim": "缺少异步请求头时接口直接报错，不存在同步等待视频的用法。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "缺少此请求头将报错：“current user api does not support synchronous calls”",
+      "verified": true
+    },
+    {
+      "id": "resolution-is-a-pixel-budget",
+      "claim": "resolution 决定的是总像素预算，输出宽高比会尽量跟随输入图，而不是固定裁成 16:9。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "模型根据选择的分辨率档位，自动缩放至相近总像素， 视频宽高比将尽量与输入图像 img_url 的宽高比保持一致",
+      "verified": true
+    },
+    {
+      "id": "resolution-defaults-to-1080p",
+      "claim": "wan2.6-i2v-flash 的 resolution 可选 720P / 1080P，默认值是 1080P（也就是贵的那一档）。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "wan2.6-i2v-flash：可选值：720P、1080P。默认值为 1080P 。",
+      "verified": true
+    },
+    {
+      "id": "duration-is-a-range",
+      "claim": "wan2.6-i2v-flash 的 duration 取值是 [2, 15] 之间的整数，默认 5 秒，而不是只有 5 秒和 10 秒两档。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "wan2.6-i2v-flash：取值为[2, 15]之间的整数。默认值为 5。",
+      "verified": true
+    },
+    {
+      "id": "audio-defaults-to-on",
+      "claim": "audio 的默认值是 true，也就是默认输出有声视频；想要无声必须显式写 false。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "可选值： true：默认值，输出有声视频。 false：输出无声视频。",
+      "verified": true
+    },
+    {
+      "id": "audio-changes-the-price",
+      "claim": "官方文档写明 audio 直接影响费用，有声与无声按不同价格计费。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "audio 直接影响费用，有声视频与无声视频价格不同",
+      "verified": true
+    },
+    {
+      "id": "result-url-expires",
+      "claim": "结果视频的下载链接只有 24 小时有效期，格式为 MP4（H.264 编码）。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "链接有效期 24 小时，可通过此 URL 下载视频。视频格式为 MP4（H.264 编码）。",
+      "verified": true
+    },
+    {
+      "id": "task-status-enum",
+      "claim": "异步任务的状态枚举包含 PENDING、RUNNING、SUCCEEDED、FAILED、CANCELED 和 UNKNOWN，其中 UNKNOWN 表示任务不存在而非尚未完成。",
+      "source": "https://help.aliyun.com/zh/model-studio/image-to-video-api-reference",
+      "quote": "PENDING：任务排队中 RUNNING：任务处理中 SUCCEEDED：任务执行成功 FAILED：任务执行失败 CANCELED：任务已取消 UNKNOWN：任务不存在或状态未知",
+      "verified": true
+    },
+    {
+      "id": "price-wan26-i2v-flash",
+      "claim": "北京地域 wan2.6-i2v-flash 按输出秒数计费：720P 有声 0.3 元/秒、无声 0.15 元/秒；1080P 有声 0.5 元/秒、无声 0.25 元/秒。",
+      "source": "https://help.aliyun.com/zh/model-studio/model-pricing",
+      "quote": "有声视频 audio=true 720P 0.3 元/秒 50 秒 1080P 0.5 元/秒 无声视频 audio=false 720P 0.15 元/秒 1080P 0.25 元/秒",
+      "verified": true
+    },
+    {
+      "id": "measured-output-size",
+      "claim": "1024×768 的输入图，在 720P 档位下产出的是 1108×830（91.96 万像素，与 1280×720 的 92.16 万相当），印证了「相近总像素 + 跟随输入宽高比」。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/content-engine/main/research/wan-i2v/measured-2026-09-22.json",
+      "quote": "\"width\": 1108, \"height\": 830, \"pixels\": 919640",
+      "verified": true
+    },
+    {
+      "id": "measured-audio-track",
+      "claim": "我们那批片子每条都带 AAC 立体声音轨，因为当时的请求没有传 audio，默认按有声生成（并计费）。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/content-engine/main/research/wan-i2v/measured-2026-09-22.json",
+      "quote": "\"codec\": \"aac\", \"channels\": 2, \"sample_rate\": 44100",
+      "verified": true
+    },
+    {
+      "id": "measured-clip-duration",
+      "claim": "量测出的成片时长是 5.007 秒，与请求的 5 秒一致。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/content-engine/main/research/wan-i2v/measured-2026-09-22.json",
+      "quote": "\"duration_seconds\": 5.007",
+      "verified": true
+    },
+    {
+      "id": "script-polling",
+      "claim": "复现脚本每 8 秒轮询一次，最多 40 次。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/content-engine/main/scripts/wan-i2v.mjs",
+      "quote": "export const POLL_INTERVAL_MS = 8000;\nexport const MAX_POLLS = 40;",
+      "verified": true
+    },
+    {
+      "id": "script-sends-audio-false",
+      "claim": "复现脚本显式发送 audio: false，不把「贵一倍」交给服务端的默认值。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/content-engine/main/scripts/wan-i2v.mjs",
+      "quote": "Sent explicitly: the API's own default is `true`, and silence is half the price.\n  audio = false,",
+      "verified": true
+    }
+  ]
+}

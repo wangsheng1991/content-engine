@@ -1,0 +1,59 @@
+slug: wan-i2v-first-frame
+title: "把一张效果图变成 5 秒镜头：万相图生视频的三个账单陷阱"
+subtitle: "wan2.6-i2v-flash 只需要一张首帧图和一个运动提示词，但它的两个参数默认值都不是便宜的那个。"
+kind: practice
+date: 2026-09-22
+updated: 2026-09-22
+status: published
+summary: |
+  通义万相（wan2.6-i2v-flash）是图生视频里最省事的一档：一张首帧图 + 一句运动提示词，五秒后拿到一段 MP4。
+  它只有异步接口，必须显式打开异步提交，再用任务 ID 轮询，结果链接 24 小时过期。
+  真正容易吃亏的是另外两个参数：resolution 是「像素预算」而不是分辨率档位（默认还是更贵的 1080P），
+  audio 默认是开着的 —— 不写它，一条 5 秒 720P 的片子就按有声价计费，正好贵一倍（¥1.50 而不是 ¥0.75）。
+  我们六月份那批三条片子就是这样付的：文件里都带着 AAC 音轨，因为脚本当时没传 audio。
+tags: [图生视频, 通义万相, 视频生成, AI 室内设计, 成本]
+hashtags: [图生视频, 通义万相, AI视频, 成本优化, 室内设计]
+canonical:
+  repo: https://github.com/wangsheng1991/content-engine
+  script: https://github.com/wangsheng1991/content-engine/blob/main/scripts/wan-i2v.mjs
+  reference: https://help.aliyun.com/zh/model-studio/image-to-video-api-reference
+  pricing: https://help.aliyun.com/zh/model-studio/model-pricing
+key_facts:
+  - label: 模型
+    value: "wan2.6-i2v-flash（通义万相，图生视频，单镜头）"
+  - label: 输入
+    value: "一张首帧图 + 一段运动提示词，图片以 data URI 内联，无需对象存储"
+  - label: 接口形态
+    value: "只有异步：必须传 X-DashScope-Async: enable，然后轮询任务"
+  - label: 我们的输出
+    value: "1024×768 的输入 → 1108×830 / 5.007 秒 / H.264 MP4，约 5.5 MB"
+  - label: 一条 5 秒 720P 的成本
+    value: "无声 ¥0.75，有声 ¥1.50（北京地域价目，按秒计费）"
+  - label: 最容易漏的参数
+    value: "audio 默认 true、resolution 默认 1080P —— 两个默认值都是贵的那一档"
+links:
+  - label: "官方 API 参考（图生视频）"
+    url: https://help.aliyun.com/zh/model-studio/image-to-video-api-reference
+  - label: "官方价格页"
+    url: https://help.aliyun.com/zh/model-studio/model-pricing
+  - label: "复现脚本"
+    url: https://github.com/wangsheng1991/content-engine/blob/main/scripts/wan-i2v.mjs
+  - label: "本次量测日志"
+    url: https://github.com/wangsheng1991/content-engine/blob/main/research/wan-i2v/measured-2026-09-22.json
+platforms:
+  bluesky:
+    text: |
+      Wan 2.6 image-to-video: one still plus one motion prompt, a 5-second MP4 back. Two of its parameters default to the expensive setting — audio is on (double price) and resolution is 1080P. A 5s silent 720P clip is ¥0.75; forgetting audio makes it ¥1.50.
+  devto:
+    title: "Image-to-video in three parameters: how a 5-second clip costs twice what it should"
+    tags: [ai, video, tutorial, cost]
+  x:
+    title: "One still, one prompt, five seconds of camera move — and two parameters whose defaults double the bill."
+  reddit:
+    title: "Wan 2.6 image-to-video: the async-only API, the 24-hour result URL, and two defaults that double the cost"
+    hook: "I ran image-to-video through Wan 2.6 (wan2.6-i2v-flash) for interior renders. The API is async-only, the result URL dies in 24 hours, and two parameters — resolution and audio — default to the expensive setting."
+  xiaohongshu:
+    title: "一张效果图,5 秒变镜头🎬"
+    hook: "把装修效果图变成短视频，一条 5 秒的片子成本只要 7 毛 5 —— 前提是你知道这两个参数不能省。"
+  zhihu:
+    title: "用通义万相做图生视频，有哪些参数细节会直接影响成片质量和成本？"
