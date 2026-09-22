@@ -13,6 +13,7 @@ import { extractHeadings, renderMarkdown, toPlainText } from '../src/markdown.mj
 import { renderTemplate } from '../src/template.mjs';
 import { parseYaml } from '../src/yaml.mjs';
 import { verifyAll, verifyTopic } from '../src/verify.mjs';
+import { withRef } from '../src/util.mjs';
 import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
 import { POST_LIMIT, blueskyPublish, composePost, createSession, graphemeLength, linkFacets, topicLink } from '../src/bluesky.mjs';
 
@@ -341,6 +342,28 @@ test('hf: only huggingface artifacts are selected, and a slug filters them', () 
   };
   assert.equal(hfArtifacts(manifest).length, 2);
   assert.deepEqual(hfArtifacts(manifest, ['ml-sharp']).map((a) => a.path), ['huggingface/ml-sharp/README.md']);
+});
+
+// --- attribution -------------------------------------------------------------
+// The north-star metric is "registered and completed a first generation", and it can only be
+// attributed if every published route sends people to a link that names the topic. This is that
+// link, so it is asserted here rather than discovered missing in an analytics dashboard.
+
+test('withRef tags a call-to-action URL with the topic it came from', () => {
+  assert.equal(withRef('https://www.dlss5nvidia.com', 'ml-sharp'), 'https://www.dlss5nvidia.com/?ref=ml-sharp');
+  assert.equal(withRef('https://www.dlss5nvidia.com/editor', 'ru-doc-3x4'), 'https://www.dlss5nvidia.com/editor?ref=ru-doc-3x4');
+});
+
+test('withRef keeps an existing query string and never overrides a hand-set ref', () => {
+  assert.equal(withRef('https://a.test/x?plan=pro', 'ml-sharp'), 'https://a.test/x?plan=pro&ref=ml-sharp');
+  assert.equal(withRef('https://a.test/x?ref=campaign', 'ml-sharp'), 'https://a.test/x?ref=campaign');
+});
+
+test('withRef leaves a relative or missing URL alone rather than guessing an origin', () => {
+  assert.equal(withRef('/pricing', 'ml-sharp'), '/pricing');
+  assert.equal(withRef('', 'ml-sharp'), '');
+  assert.equal(withRef(undefined, 'ml-sharp'), undefined);
+  assert.equal(withRef('https://a.test/x', ''), 'https://a.test/x');
 });
 
 // --- bluesky ----------------------------------------------------------------

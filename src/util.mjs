@@ -92,6 +92,26 @@ export function joinUrl(...parts) {
     .join('/');
 }
 
+/**
+ * Tag a call-to-action URL with the topic it came from.
+ *
+ * Every published route carries the same tagged link, which is what lets the product tell which
+ * topic produced a signup. The parameter is only added when the URL is already absolute and does
+ * not carry a `ref` of its own — a hand-set value wins, and a relative URL is left alone rather
+ * than guessed at.
+ */
+export function withRef(url, ref) {
+  if (!url || !ref) return url;
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  if (!parsed.searchParams.has('ref')) parsed.searchParams.set('ref', String(ref));
+  return parsed.toString();
+}
+
 /** ISO-8601 in UTC, seconds precision — used in feeds and manifests. */
 export function isoNow(date = new Date()) {
   return date.toISOString().replace(/\.\d{3}Z$/, 'Z');

@@ -232,7 +232,26 @@ Postiz Cloud 帮你做完这些事，代价是钱和数据托管。
 | X / Instagram / TikTok / YouTube / Pinterest | ⏳ 待办 —— 每个都要先注册开发者应用，X 的 API 还要付费 |
 | **Reddit 半自动发帖** | ⏳ 待办，见下 |
 | 小红书 / 知乎 | ⛔ 不可自动化（无官方接口，只有浏览器自动化） |
-| 内容 → 注册/首图 的埋点 | ⏳ 待办 —— 见 §5 坑 ③，**这是北星指标能不能测的关键** |
+| 内容 → 注册/首图 的埋点（内容侧：CTA 带 `ref`） | ✅ **已做**，见下 |
+
+### 归因（内容 → 注册 → 首图）
+
+**内容侧已做完**：编译时给每个 CTA 追加 `?ref=<slug>`（`src/util.mjs` 的 `withRef`，`src/build.mjs` 里统一注入）。
+站点页、Hugging Face 卡片、博客、每天重新编译的产物全部自动带上，不需要逐篇改。
+
+**产品侧待实现**，交办说明写在 `dlss5main/docs/ACQUISITION_ATTRIBUTION.md` —— 已经定位到具体的文件和行：
+
+1. 落地时捕获 `?ref=`，写进 localStorage（first touch，不覆盖）
+2. `AuthContext.tsx:60` 调 `/api/me/bootstrap` 时把 ref 带上去
+3. `JobStore.bootstrap()`（`server/job-store.ts:32`）在**首次建号**时写入 `users/{uid}.acquisition`
+   —— 它本来就是 `if (user.exists) return` 然后 `tx.create`，**天生只写一次**，不用额外去重
+4. 报表：`users.acquisition.ref` 关联 `image_operations` 的 `min(createdAt)`
+
+**最省事的一点：首图事件已经存在**（`image_operations` 带 `uid` 和时间），不需要新增任何埋点。
+真正缺的只有「ref 随注册落库」这一小段。
+
+可选补充（不需要产品改动）：**Cloudflare Web Analytics** 免费，能在 CF 后台按页面看来源与流量，
+但**它连不到注册**，只能当参考，替代不了上面这条。
 
 ### Reddit 待办的具体内容
 

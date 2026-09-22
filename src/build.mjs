@@ -7,7 +7,7 @@ import { buildDeck, pandocPath } from './deck.mjs';
 import { extractHeadings, renderMarkdown, toPlainText } from './markdown.mjs';
 import { renderTemplate } from './template.mjs';
 import { listTopicSlugs, loadTopic } from './topic.mjs';
-import { copyDir, ensureDir, exists, isoNow, joinUrl, readText, sha256, writeOut } from './util.mjs';
+import { copyDir, ensureDir, exists, isoNow, joinUrl, readText, sha256, withRef, writeOut } from './util.mjs';
 
 const ENGINE_VERSION = '0.1.0';
 
@@ -331,7 +331,15 @@ function buildTopicView(topic, ctx) {
     },
     evidence,
     cta: topic.cta
-      ? { ...topic.cta, body_html: topic.cta.body ? renderMarkdown(topic.cta.body) : '', body_text: oneLine(topic.cta.body ?? '') }
+      ? {
+          ...topic.cta,
+          // Every route a topic is published on sends people to the same tagged URL, so the product
+          // can tell which topic produced a signup. Without it the north-star metric — registered
+          // and completed a first generation — cannot be measured from this side at all.
+          url: withRef(topic.cta.url, topic.slug),
+          body_html: topic.cta.body ? renderMarkdown(topic.cta.body) : '',
+          body_text: oneLine(topic.cta.body ?? ''),
+        }
       : null,
   };
   view.article_html = articleHtml;
