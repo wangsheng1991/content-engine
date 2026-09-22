@@ -3,11 +3,15 @@
     "name": "AI Research Notes",
     "tagline": "Build first, distribute second.",
     "description": "Short, reproducible write-ups of AI research and models, each one backed by a runnable artifact.",
+    "name_en": "AI Research Notes",
+    "tagline_en": "Build first, distribute second.",
+    "description_en": "Short, reproducible write-ups of AI research and models, each one backed by a runnable artifact.",
     "baseUrl": "https://wangsheng1991.github.io/content-engine",
     "repo": "https://github.com/wangsheng1991/content-engine",
     "author": "wangsheng1991",
     "language": "zh",
-    "locale": "zh-CN"
+    "locale": "zh-CN",
+    "locale_en": "en-US"
   },
   "paths": {
     "topics": "topics",

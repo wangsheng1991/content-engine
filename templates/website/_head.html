@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ site.language }}">
+<html lang="{{ html_lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,11 +7,14 @@
 <meta name="description" content="{{ page.description }}">
 <meta name="author" content="{{ site.author }}">
 <link rel="canonical" href="{{ page.canonical }}">
-<link rel="alternate" type="application/rss+xml" title="{{ site.name }}" href="{{ base_path }}/feed.xml">
+{{#each alternates}}
+<link rel="alternate" hreflang="{{ hreflang }}" href="{{ href }}">
+{{/each}}
+<link rel="alternate" type="application/rss+xml" title="{{ site.name }}" href="{{ feed_href }}">
 <meta name="color-scheme" content="light dark">
 <meta property="og:type" content="{{ page.og_type }}">
 <meta property="og:site_name" content="{{ site.name }}">
-<meta property="og:locale" content="{{ site.locale }}">
+<meta property="og:locale" content="{{ t.ogLocale }}">
 <meta property="og:title" content="{{ page.og_title }}">
 <meta property="og:description" content="{{ page.description }}">
 <meta property="og:url" content="{{ page.canonical }}">
@@ -143,10 +146,13 @@ footer .wrap { padding: 0; max-width: 72rem; }
 </head>
 <body>
 <header class="nav">
-  <a class="brand" href="{{ base_path }}/"><span class="mark" aria-hidden="true">AI</span>{{ site.name }}</a>
+  <a class="brand" href="{{ home_href }}"><span class="mark" aria-hidden="true">AI</span>{{ site.name }}</a>
   <div class="nav-links">
-    <a class="btn secondary" href="{{ base_path }}/feed.xml">RSS</a>
-    <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深色模式">
+{{#if lang_switch}}
+    <a class="btn secondary" href="{{ lang_switch.href }}" hreflang="{{ lang_switch.lang }}" lang="{{ lang_switch.lang }}">{{ lang_switch.label }}</a>
+{{/if}}
+    <a class="btn secondary" href="{{ feed_href }}">{{ t.feedLink }}</a>
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="{{ t.toggleTheme }}">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 1Zm0 11a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 12Zm7-4a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 15 8Zm-11 0a.75.75 0 0 1-.75.75H1.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 4 8Zm9.6-5.6a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 1 1-1.06-1.06L12.54 2.4a.75.75 0 0 1 1.06 0ZM5.52 10.48a.75.75 0 0 1 0 1.06L4.46 12.6a.75.75 0 0 1-1.06-1.06l1.06-1.06a.75.75 0 0 1 1.06 0Zm7.08 2.12-1.06-1.06a.75.75 0 1 0-1.06 1.06l1.06 1.06a.75.75 0 1 0 1.06-1.06ZM5.52 5.52 4.46 4.46A.75.75 0 0 0 3.4 5.52l1.06 1.06a.75.75 0 0 0 1.06-1.06ZM8 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
     </button>
   </div>

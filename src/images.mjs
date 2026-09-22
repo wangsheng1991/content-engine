@@ -20,6 +20,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { ensureDir, escapeHtml, exists, isPlainObject, sha256, toArray } from './util.mjs';
+import { englishTitle } from './i18n.mjs';
 
 export const BACKENDS = ['card', 'qwen', 'command'];
 export const COVER_WIDTH = 1200;
@@ -73,7 +74,7 @@ export function planImages(topic, config = {}) {
     {
       id: 'cover-en',
       lang: 'en',
-      title: cover.en?.headline ?? source.platforms?.devto?.title,
+      title: cover.en?.headline ?? englishTitle(source),
       // A Latin card must not inherit the Chinese furniture: the tags would render as a row of
       // glyphs the English reader cannot use, so the card takes the tags Dev.to will get instead.
       kicker: cover.en?.kicker ?? kickerOf(source),

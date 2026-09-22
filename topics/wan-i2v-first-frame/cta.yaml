@@ -5,3 +5,12 @@ body: |
   视频只是素材的一种形态；真正决定转化的是第一张图好不好看、要等多久。
 label: "上传房间照片，免费出一张效果图"
 url: https://www.houseplusplus.com
+en:
+  headline: "Upload a room photo, get a usable render seconds later"
+  body: |
+    The chain above starts with the most ordinary action in RenVi: upload a photo of your room,
+    pick a style, wait a few seconds. Once the render is good enough, you take the next step and
+    turn it into a shot. Video is only one shape the material takes — what decides conversion is
+    how good the first image looks and how long it takes to arrive.
+  label: "Upload a room photo, get one render free"
+  url: https://www.houseplusplus.com

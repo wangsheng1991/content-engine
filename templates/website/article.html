@@ -7,8 +7,8 @@
 {{#each topic.tags}}
     <span class="chip">{{ this }}</span>
 {{/each}}
-    <span>{{ topic.reading_minutes }} 分钟阅读</span>
-    <a href="{{ topic.href }}">主题页</a>
+    <span>{{ topic.reading_minutes }} {{ t.readMinutes }}</span>
+    <a href="{{ topic.href }}">{{ t.topicPage }}</a>
   </div>
 
   <section class="prose">
@@ -16,7 +16,16 @@
   </section>
 
 {{#if evidence.length}}
-  <h2>证据</h2>
+  <h2>{{ t.evidence }}</h2>
+{{#if is_english}}
+  {{! The claims are quotes out of Chinese documentation, so the English page lists where they came
+      from rather than a translation of a verbatim quote. }}
+  <ul class="links">
+{{#each evidence}}
+    <li><a class="chip" href="{{ source }}">{{ host }}</a></li>
+{{/each}}
+  </ul>
+{{else}}
   <ul class="evidence">
 {{#each evidence}}
     <li>
@@ -28,6 +37,7 @@
     </li>
 {{/each}}
   </ul>
+{{/if}}
 {{/if}}
 
 {{#if cta}}

@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { englishSummary, englishTitle } from './i18n.mjs';
 import { englishCoverOf, coverOf } from './images.mjs';
 import { loadTopic } from './topic.mjs';
 import { joinUrl } from './util.mjs';
@@ -81,8 +82,8 @@ export function devtoTags(tags = [], { limit = TAG_LIMIT } = {}) {
  * canonical disagrees with the original's is a copy the search engines may treat as original.
  * Attribution does not suffer: the call to action inside the body keeps its `?ref=<slug>`.
  */
-export function canonicalUrl(slug, config) {
-  return `${joinUrl(config?.site?.baseUrl ?? '', 'blog', slug)}/`;
+export function canonicalUrl(slug, config, { english = false } = {}) {
+  return `${joinUrl(config?.site?.baseUrl ?? '', english ? 'en/blog' : 'blog', slug)}/`;
 }
 
 /**
@@ -104,36 +105,55 @@ export function stripFrontMatter(markdown) {
   return (match ? text.slice(match[0].length) : text).replace(/^\s*\n/, '');
 }
 
-/** `blog/<slug>.md` → `<slug>`. The extension is dropped: `blog/a.md` is the topic `a`, not `a.md`. */
+/**
+ * `blog/<slug>.md` → `<slug>`. Both extensions are dropped: `blog/a.md` and `blog/a.en.md` are the
+ * topic `a`, not `a.md` and `a.en.md`.
+ */
 export function slugFromArtifact(filePath) {
-  return String(filePath).replace(/^.*\//, '').replace(/\.md$/, '');
+  return String(filePath)
+    .replace(/^.*\//, '')
+    .replace(/\.en\.md$/, '')
+    .replace(/\.md$/, '');
 }
 
-/** Which compiled articles to ship: the tier-A `blog/<slug>.md` artifacts. */
+/** True when this compiled article is the English body of its topic. */
+export function isEnglishArtifact(filePath) {
+  return String(filePath).endsWith('.en.md');
+}
+
+/**
+ * Which compiled articles to ship: the tier-A `blog/<slug>.md` artifacts, one per topic, English
+ * preferred. Dev.to's readership is English, and an English headline over a Chinese body is a
+ * promise the copy cannot keep — so when a topic has both, the English one is what goes out.
+ */
 export function devtoArtifacts(manifest, slugs) {
-  return (manifest?.artifacts ?? []).filter((a) => {
-    if (a.kind !== 'blog' || !String(a.path).endsWith('.md')) return false;
-    if (!slugs?.length) return true;
-    return slugs.includes(slugFromArtifact(a.path));
-  });
+  const chosen = new Map();
+  for (const artifact of manifest?.artifacts ?? []) {
+    if (artifact.kind !== 'blog' || !String(artifact.path).endsWith('.md')) continue;
+    const slug = slugFromArtifact(artifact.path);
+    if (slugs?.length && !slugs.includes(slug)) continue;
+    const english = isEnglishArtifact(artifact.path);
+    if (!chosen.has(slug) || english) chosen.set(slug, artifact);
+  }
+  return [...chosen.values()];
 }
 
 /**
  * One topic's article, ready for the API. The caller supplies the compiled markdown, so what is
  * sent cannot differ from what the site serves.
  */
-export function composeArticle({ slug, source, markdown, config, coverUrl }) {
-  const title = String(source?.platforms?.devto?.title ?? source?.title ?? slug).trim();
+export function composeArticle({ slug, source, markdown, config, coverUrl, english = false }) {
+  const title = String(englishTitle(source) || source?.title || slug).trim();
   if (!title) throw new Error(`${slug}: 文章没有标题`);
   const body = absolutizeAssets(stripFrontMatter(markdown), slug, config);
   if (!body.trim()) throw new Error(`${slug}: 文章是空的 —— 先 content build`);
   if (body.length > BODY_MAX) throw new Error(`${slug}: 正文 ${body.length} 字符，超过 Dev.to 的 ${BODY_MAX} 上限`);
-  const description = oneLine(source?.summary ?? '').slice(0, 200);
+  const description = oneLine(englishSummary(source) || source?.summary || '').slice(0, 200);
   return {
     title,
     body_markdown: body,
     published: true,
-    canonical_url: canonicalUrl(slug, config),
+    canonical_url: canonicalUrl(slug, config, { english }),
     ...(description ? { description } : {}),
     // Dev.to re-hosts the image off this absolute URL, so the site has to be deployed first —
     // which is the order `content publish` already uses: git push, then the platform call.
@@ -185,10 +205,11 @@ export function devtoPublish({ root, config, manifest, slugs, apiKey, draft = fa
 
   const prepared = artifacts.map((artifact) => {
     const slug = slugFromArtifact(artifact.path);
+    const english = isEnglishArtifact(artifact.path);
     const topic = loadTopic(root, slug, { topicsDir: config.paths?.topics });
     const outDir = path.isAbsolute(config.paths.out) ? config.paths.out : path.join(root, config.paths.out);
     const markdown = fs.readFileSync(path.join(outDir, artifact.path), 'utf8');
-    const article = composeArticle({ slug, source: topic.source, markdown, config, coverUrl: coverUrlOf(topic, config) });
+    const article = composeArticle({ slug, source: topic.source, markdown, config, coverUrl: coverUrlOf(topic, config), english });
     return { slug, article: draft ? { ...article, published: false } : article };
   });
 

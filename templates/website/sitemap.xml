@@ -3,7 +3,22 @@
   <url>
     <loc>{{ site.baseUrl }}/</loc>
   </url>
+{{#if has_english_site}}
+  <url>
+    <loc>{{ site.baseUrl }}/en/</loc>
+  </url>
+{{/if}}
 {{#each topics}}
+  <url>
+    <loc>{{ url }}</loc>
+    <lastmod>{{ updated }}</lastmod>
+  </url>
+  <url>
+    <loc>{{ blog_url }}</loc>
+    <lastmod>{{ updated }}</lastmod>
+  </url>
+{{/each}}
+{{#each english_topics}}
   <url>
     <loc>{{ url }}</loc>
     <lastmod>{{ updated }}</lastmod>

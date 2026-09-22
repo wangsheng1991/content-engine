@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { build, loadConfig } from '../src/build.mjs';
+import { englishSummary, englishTitle, siteFor, stringsFor } from '../src/i18n.mjs';
 import {
   COVER_HEIGHT,
   COVER_WIDTH,
@@ -27,6 +28,7 @@ import { loadTopic } from '../src/topic.mjs';
 import { parseYaml } from '../src/yaml.mjs';
 import { verifyAll, verifyTopic } from '../src/verify.mjs';
 import { withRef } from '../src/util.mjs';
+import { spaceCjk, spaceCjkHtml } from '../src/typography.mjs';
 import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
 import { POST_LIMIT, blueskyPublish, composePost, createSession, graphemeLength, linkFacets, topicLink } from '../src/bluesky.mjs';
 import {
@@ -34,11 +36,14 @@ import {
   TAG_LIMIT,
   TAG_MAX,
   absolutizeAssets,
+  canonicalUrl,
   composeArticle,
   coverUrlOf,
   devtoArtifacts,
   devtoPublish,
   devtoTags,
+  isEnglishArtifact,
+  slugFromArtifact,
   stripFrontMatter,
 } from '../src/devto.mjs';
 import {
@@ -219,7 +224,7 @@ test('build: compiles every topic into tier A + tier B artifacts on disk', () =>
   }
 
   const page = fs.readFileSync(path.join(outDir, `site/topics/${slug}/index.html`), 'utf8');
-  assert.match(page, /<html lang="zh">/);
+  assert.match(page, /<html lang="zh-CN">/);
   assert.match(page, /<h1>/);
   assert.match(page, /<!doctype html>/i);
 
@@ -260,6 +265,101 @@ test('build: compiles every topic into tier A + tier B artifacts on disk', () =>
   const manifestFile = JSON.parse(fs.readFileSync(path.join(outDir, 'manifest.json'), 'utf8'));
   assert.equal(manifestFile.artifacts.length, manifest.artifacts.length);
 
+  fs.rmSync(outDir, { recursive: true, force: true });
+});
+
+// --- the English side --------------------------------------------------------
+// A topic gets an English page because someone wrote `article.en.md`, never because a template
+// translated itself. These assertions are the guard on that: no English body, no English routes.
+test('build: only the topic with an English body gets /en/ routes, and both sides link to each other', () => {
+  const config = loadConfig(ROOT);
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'content-engine-en-'));
+  build({ root: ROOT, config, outDir, log: () => {} });
+
+  const withEnglish = ['wan-i2v-first-frame'];
+  const withoutEnglish = ['ml-sharp'];
+
+  for (const slug of withEnglish) {
+    const en = fs.readFileSync(path.join(outDir, `site/en/blog/${slug}/index.html`), 'utf8');
+    assert.match(en, /<html lang="en">/);
+    assert.match(en, /<link rel="canonical" href="https:\/\/[^"]+\/en\/blog\//);
+    assert.match(en, /hreflang="zh-CN"/);
+    assert.match(en, /hreflang="x-default"/);
+    assert.ok(!en.includes('一张照片进去'), 'the English page must not carry the Chinese call to action');
+    assert.ok(!en.includes('查看仓库'), 'the English page must not carry Chinese chrome');
+
+    const zh = fs.readFileSync(path.join(outDir, `site/blog/${slug}/index.html`), 'utf8');
+    assert.match(zh, new RegExp(`hreflang="en" href="https://[^"]+/en/blog/${slug}/"`));
+  }
+  for (const slug of withoutEnglish) {
+    assert.ok(!fs.existsSync(path.join(outDir, `site/en/blog/${slug}/index.html`)));
+    const zh = fs.readFileSync(path.join(outDir, `site/blog/${slug}/index.html`), 'utf8');
+    assert.ok(!zh.includes('hreflang'), 'a page with no translation must not claim one');
+  }
+
+  const index = fs.readFileSync(path.join(outDir, 'site/en/index.html'), 'utf8');
+  assert.match(index, /<html lang="en">/);
+  assert.match(index, /href="\/content-engine\/en\/blog\/wan-i2v-first-frame\/"/, 'the English index links to the English article');
+  assert.ok(!index.includes('ml-sharp'), 'a topic with no English body must not appear in the English index');
+
+  const sitemap = fs.readFileSync(path.join(outDir, 'site/sitemap.xml'), 'utf8');
+  assert.match(sitemap, /<loc>https:\/\/[^<]+\/en\/<\/loc>/);
+  assert.ok(fs.existsSync(path.join(outDir, 'site/en/feed.xml')));
+
+  fs.rmSync(outDir, { recursive: true, force: true });
+});
+
+test('i18n: the site strings switch language, and a missing English one falls back rather than blanks', () => {
+  const site = { name: '站点', name_en: 'Site', tagline: '标语', tagline_en: 'Tagline', locale: 'zh-CN', locale_en: 'en-US' };
+  assert.deepEqual([siteFor(site, 'zh').name, siteFor(site, 'zh').language], ['站点', 'zh']);
+  assert.deepEqual([siteFor(site, 'en').name, siteFor(site, 'en').locale], ['Site', 'en-US']);
+  assert.equal(siteFor({ name: '站点' }, 'en').name, '站点', 'no English name means no invented one');
+  assert.equal(stringsFor('en').readMinutes, 'min read');
+  assert.equal(stringsFor('zh').readMinutes, '分钟阅读');
+  assert.equal(stringsFor('de').readMinutes, '分钟阅读', 'an unknown language is not a reason to crash');
+});
+
+test('i18n: the English title comes from title_en, then from the Dev.to headline, and never from a machine', () => {
+  assert.equal(englishTitle({ title: '中文', title_en: 'English' }), 'English');
+  assert.equal(englishTitle({ title: '中文', platforms: { devto: { title: 'Dev headline' } } }), 'Dev headline');
+  assert.equal(englishTitle({ title: '中文' }), '');
+  assert.equal(englishSummary({ summary: '中文摘要', summary_en: 'English summary' }), 'English summary');
+});
+
+test('build: the Chinese page gets the copywriting rules and the English page is left alone', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'content-engine-prose-'));
+  fs.mkdirSync(path.join(dir, 'topics/demo/assets'), { recursive: true });
+  fs.symlinkSync(path.join(ROOT, 'templates'), path.join(dir, 'templates'));
+  fs.writeFileSync(
+    path.join(dir, 'topics/demo/source.yaml'),
+    [
+      'slug: demo',
+      'title: "中文标题"',
+      'subtitle: "副标题"',
+      'summary: "摘要里没有空格：中文abc"',
+      'kind: research',
+      'date: 2026-09-21',
+      'tags: [甲]',
+      'platforms:',
+      '  devto:',
+      '    title: "An English title"',
+      '',
+    ].join('\n'),
+  );
+  fs.writeFileSync(path.join(dir, 'topics/demo/article.md'), '这段里没有空格：中文abc与数字123。\n');
+  fs.writeFileSync(path.join(dir, 'topics/demo/article.en.md'), 'An English — em dash keeps its spaces.\n');
+  fs.writeFileSync(path.join(dir, 'topics/demo/evidence.json'), '{"topic":"demo","claims":[]}');
+  fs.writeFileSync(path.join(dir, 'topics/demo/cta.yaml'), 'label: "试试"\nurl: https://example.com\n');
+
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'content-engine-prose-out-'));
+  build({ root: dir, config: { ...loadConfig(ROOT), paths: { topics: 'topics', templates: 'templates', out: outDir } }, outDir, log: () => {} });
+
+  const zh = fs.readFileSync(path.join(outDir, 'site/blog/demo/index.html'), 'utf8');
+  assert.match(zh, /中文 abc 与数字 123/, 'Chinese next to Latin or a number gets a space');
+  const en = fs.readFileSync(path.join(outDir, 'site/en/blog/demo/index.html'), 'utf8');
+  assert.match(en, /An English — em dash keeps its spaces\./, 'English typography must not be "corrected"');
+
+  fs.rmSync(dir, { recursive: true, force: true });
   fs.rmSync(outDir, { recursive: true, force: true });
 });
 
@@ -683,6 +783,30 @@ test('devto: publishing fails on a missing key or a missing build, before any ne
   );
 });
 
+test('devto: the English body is what goes out, and the canonical points at the English page', () => {
+  const artifacts = devtoArtifacts(
+    {
+      artifacts: [
+        { path: 'blog/wan-i2v-first-frame.md', kind: 'blog', tier: 'A' },
+        { path: 'blog/wan-i2v-first-frame.en.md', kind: 'blog', tier: 'A' },
+        { path: 'blog/ml-sharp.md', kind: 'blog', tier: 'A' },
+      ],
+    },
+    [],
+  );
+  const paths = artifacts.map((a) => a.path);
+  assert.deepEqual(paths, ['blog/wan-i2v-first-frame.en.md', 'blog/ml-sharp.md'], 'one article per topic, English first');
+  // The slug has to survive the second extension, or the .en copy publishes as a topic called
+  // "wan-i2v-first-frame.en".
+  assert.equal(slugFromArtifact('blog/wan-i2v-first-frame.en.md'), 'wan-i2v-first-frame');
+  assert.equal(isEnglishArtifact('blog/x.en.md'), true);
+  assert.equal(isEnglishArtifact('blog/x.md'), false);
+  assert.equal(
+    canonicalUrl('demo', { site: { baseUrl: 'https://example.test' } }, { english: true }),
+    'https://example.test/en/blog/demo/',
+  );
+});
+
 test('devto: a dry run prints the title, tags and canonical URL, and contacts nothing', () => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'devto-'));
   fs.mkdirSync(path.join(outDir, 'blog'), { recursive: true });
@@ -939,6 +1063,153 @@ if (chromePath()) {
 } else {
   console.log('· 跳过 card 后端渲染测试：本机没有 Chrome/Chromium');
 }
+
+// --- typography -------------------------------------------------------------
+test('typography: Chinese next to Latin or a number gets exactly one space', () => {
+  assert.equal(spaceCjk('中文abc123'), '中文 abc123');
+  assert.equal(spaceCjk('wan2.6-i2v-flash只需要一张首帧图'), 'wan2.6-i2v-flash 只需要一张首帧图');
+  assert.equal(spaceCjk('用HDMI线接上27英寸的屏幕'), '用 HDMI 线接上 27 英寸的屏幕');
+});
+
+test('typography: a halfwidth sign never splits a token the author wrote whole', () => {
+  assert.equal(spaceCjk('1024×768的效果图'), '1024×768 的效果图');
+  assert.equal(spaceCjk('新 MacBook Pro 有 15%的 CPU 提升'), '新 MacBook Pro 有 15%的 CPU 提升');
+  assert.equal(spaceCjk('中文(foo)'), '中文(foo)');
+});
+
+test('typography: full-width punctuation keeps no space on either side', () => {
+  assert.equal(spaceCjk('中文 ，好'), '中文，好');
+  assert.equal(spaceCjk('中文 。'), '中文。');
+  assert.equal(spaceCjk('中文 ！'), '中文！');
+  assert.equal(spaceCjk('中文 ；'), '中文；');
+  assert.equal(spaceCjk('中文 ：'), '中文：');
+  assert.equal(spaceCjk('中文 ？'), '中文？');
+  assert.equal(spaceCjk('中文 ）'), '中文）');
+  assert.equal(spaceCjk('中文 》'), '中文》');
+  // The em dash is the one mark the pass leaves alone: these articles space it out on purpose,
+  // and `word — word` is correct English. See FULLWIDTH_PUNCT in src/typography.mjs.
+  assert.equal(spaceCjk('那个 AAC 音轨不是我们要的 —— 是没人告诉模型不要'), '那个 AAC 音轨不是我们要的 —— 是没人告诉模型不要');
+  assert.equal(spaceCjk('H.264 ，是半角标点旁边的），也是'), 'H.264，是半角标点旁边的），也是');
+});
+
+test('typography: pure Chinese and pure English come back unchanged', () => {
+  assert.equal(spaceCjk('这是一段纯中文的句子。'), '这是一段纯中文的句子。');
+  assert.equal(spaceCjk('Stay hungry, stay foolish. 100% done'), 'Stay hungry, stay foolish. 100% done');
+});
+
+test('typography: a space that is already there is never doubled or trimmed', () => {
+  assert.equal(spaceCjk('中文 abc'), '中文 abc');
+  assert.equal(spaceCjk('中文  abc'), '中文  abc');
+  assert.equal(spaceCjk('abc  中文'), 'abc  中文');
+});
+
+test('typography: empty input, whitespace only, and non-strings', () => {
+  assert.equal(spaceCjk(''), '');
+  assert.equal(spaceCjk(null), '');
+  assert.equal(spaceCjk(undefined), '');
+  assert.equal(spaceCjk('   '), '   ');
+});
+
+test('typography: indentation, blank lines and line breaks are left alone', () => {
+  const source = '  缩进abc\n\n中文abc\n   中文abc  ';
+  assert.equal(spaceCjk(source), '  缩进 abc\n\n中文 abc\n   中文 abc  ');
+});
+
+test('typography: running spaceCjk twice changes nothing the second time', () => {
+  const samples = [
+    '中文abc123',
+    '一张 1024×768 的室内效果图，一句运动提示词。',
+    '那个 AAC 音轨不是我们要的 —— 是没人告诉模型不要',
+    '中文 ，好！',
+    '中文 abc 中文 中文',
+    'English only, with 15% and a dash - here',
+  ];
+  for (const sample of samples) {
+    const once = spaceCjk(sample);
+    assert.equal(spaceCjk(once), once, sample);
+  }
+});
+
+test('typography html: attributes and urls survive, the visible text is spaced', () => {
+  assert.equal(spaceCjkHtml('<a href="https://x.dev/a-b">中文link</a>'), '<a href="https://x.dev/a-b">中文 link</a>');
+  assert.equal(spaceCjkHtml('<img src="中文abc.png" alt="中文abc">'), '<img src="中文abc.png" alt="中文abc">');
+  assert.equal(spaceCjkHtml('<h1 id="中文abc">中文abc</h1>'), '<h1 id="中文abc">中文 abc</h1>');
+});
+
+test('typography html: code, pre, kbd and samp are never rewritten', () => {
+  assert.equal(spaceCjkHtml('<code>中文abc</code>'), '<code>中文abc</code>');
+  assert.equal(
+    spaceCjkHtml('<pre><code class="language-js">const s = "中文abc";\n</code></pre>'),
+    '<pre><code class="language-js">const s = "中文abc";\n</code></pre>',
+  );
+  assert.equal(spaceCjkHtml('<kbd>Ctrl+中文</kbd>'), '<kbd>Ctrl+中文</kbd>');
+  assert.equal(spaceCjkHtml('<samp>中文abc</samp>'), '<samp>中文abc</samp>');
+});
+
+test('typography html: script and style bodies are copied as they are', () => {
+  assert.equal(
+    spaceCjkHtml('<script>var tag = "中文abc";</script>中文abc'),
+    '<script>var tag = "中文abc";</script>中文 abc',
+  );
+  assert.equal(spaceCjkHtml('<style>.a::after{content:"中文abc"}</style>'), '<style>.a::after{content:"中文abc"}</style>');
+});
+
+test('typography html: entities are rewritten in place, never unescaped and re-escaped', () => {
+  assert.equal(spaceCjkHtml('<p>AT&amp;T 与中文abc</p>'), '<p>AT&amp;T 与中文 abc</p>');
+  assert.equal(spaceCjkHtml('<p>中文 &lt;tag&gt; 中文</p>'), '<p>中文 &lt;tag&gt; 中文</p>');
+  assert.equal(spaceCjkHtml('<p>&#39;中文abc&#39;</p>'), '<p>&#39;中文 abc&#39;</p>');
+  assert.ok(!spaceCjkHtml('<p>a &amp; b，中文abc</p>').includes('&amp;amp;'));
+});
+
+test('typography html: a quoted ">" inside an attribute is not the end of the tag', () => {
+  const html = '<img src="a.png" alt="a > b 中文abc">中文abc';
+  assert.equal(spaceCjkHtml(html), '<img src="a.png" alt="a > b 中文abc">中文 abc');
+});
+
+test('typography html: a mark cut off from its neighbours by inline markup is still squeezed', () => {
+  assert.equal(
+    spaceCjkHtml('<p>输出就是 <strong>1108×830</strong> ：91.96 万像素。</p>'),
+    '<p>输出就是 <strong>1108×830</strong>：91.96 万像素。</p>',
+  );
+  assert.equal(spaceCjkHtml('<p><a href="/x">中文link</a> ：是</p>'), '<p><a href="/x">中文 link</a>：是</p>');
+  // The em dash is the exception, and it has to stay one across a tag boundary too.
+  assert.equal(
+    spaceCjkHtml('<p>输出就是 <strong>1108×830</strong> —— 91.96 万像素。</p>'),
+    '<p>输出就是 <strong>1108×830</strong> —— 91.96 万像素。</p>',
+  );
+});
+
+test('typography html: whitespace at the edge of a block is not touched', () => {
+  assert.equal(spaceCjkHtml('<p> 中文abc </p>'), '<p> 中文 abc </p>');
+  assert.equal(spaceCjkHtml('<li>\n  中文abc\n</li>'), '<li>\n  中文 abc\n</li>');
+  assert.equal(spaceCjkHtml('<p><br>\n中文abc</p>'), '<p><br>\n中文 abc</p>');
+});
+
+test('typography html: running spaceCjkHtml twice changes nothing the second time', () => {
+  const samples = [
+    '<p>中文abc，好</p>',
+    '<ul>\n<li>中文abc</li>\n<li><code>中文abc</code>中文abc</li>\n</ul>',
+    '<a href="/a-b">中文link</a> 与 <strong>中文abc</strong>',
+    '<p>中文 &lt;tag&gt;&amp;中文abc</p>',
+    '<p>输出就是 <strong>1108×830</strong> —— 91.96 万像素。</p>',
+  ];
+  for (const sample of samples) {
+    const once = spaceCjkHtml(sample);
+    assert.equal(spaceCjkHtml(once), once, sample);
+  }
+});
+
+test('typography: a rendered paragraph is spaced without breaking its markup', () => {
+  const html = renderMarkdown('一张 1024×768的效果图，模型wan2.6只需要一张首帧图。\n\n在LeanCloud上，数据存储是围绕`AVObject`进行的。\n');
+  assert.equal(
+    html,
+    '<p>一张 1024×768的效果图，模型wan2.6只需要一张首帧图。</p>\n<p>在LeanCloud上，数据存储是围绕<code>AVObject</code>进行的。</p>',
+  );
+  assert.equal(
+    spaceCjkHtml(html),
+    '<p>一张 1024×768 的效果图，模型 wan2.6 只需要一张首帧图。</p>\n<p>在 LeanCloud 上，数据存储是围绕<code>AVObject</code>进行的。</p>',
+  );
+});
 
 await Promise.all(pending);
 

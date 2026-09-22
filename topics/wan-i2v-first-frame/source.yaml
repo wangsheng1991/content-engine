@@ -1,6 +1,7 @@
 slug: wan-i2v-first-frame
 title: "把一张效果图变成 5 秒镜头：万相图生视频的三个账单陷阱"
 subtitle: "wan2.6-i2v-flash 只需要一张首帧图和一个运动提示词，但它的两个参数默认值都不是便宜的那个。"
+subtitle_en: "wan2.6-i2v-flash needs one first frame and one motion prompt — but neither of its two defaults is the cheap one."
 kind: practice
 date: 2026-09-22
 updated: 2026-09-22
@@ -11,6 +12,13 @@ summary: |
   真正容易吃亏的是另外两个参数：resolution 是「像素预算」而不是分辨率档位（默认还是更贵的 1080P），
   audio 默认是开着的 —— 不写它，一条 5 秒 720P 的片子就按有声价计费，正好贵一倍（¥1.50 而不是 ¥0.75）。
   我们六月份那批三条片子就是这样付的：文件里都带着 AAC 音轨，因为脚本当时没传 audio。
+summary_en: |
+  Wan 2.6 video-from-image (wan2.6-i2v-flash) is the easiest rung: one first frame plus one motion
+  prompt, and five seconds later you have an MP4. The API is asynchronous only — task IDs and result
+  URLs both expire after 24 hours. The expensive part is two other parameters: resolution is a pixel
+  budget rather than a quality setting (and defaults to the dearer 1080P), and audio defaults to on,
+  so a 5-second 720P clip is billed at the with-sound rate — exactly double, ¥1.50 instead of ¥0.75.
+  Our three June clips were billed that way: every file carries an AAC track.
 tags: [图生视频, 通义万相, 视频生成, AI 室内设计, 成本]
 hashtags: [图生视频, 通义万相, AI视频, 成本优化, 室内设计]
 canonical:

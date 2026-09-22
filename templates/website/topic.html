@@ -7,7 +7,7 @@
 {{#each topic.tags}}
     <span class="chip brand">{{ this }}</span>
 {{/each}}
-    <span>{{ topic.reading_minutes }} 分钟阅读</span>
+    <span>{{ topic.reading_minutes }} {{ t.readMinutes }}</span>
   </div>
 
   <div class="grid three">
@@ -21,13 +21,13 @@
 
   <div class="meta">
 {{#if topic.canonical.repo}}
-    <a class="btn" href="{{ topic.canonical.repo }}">查看仓库</a>
+    <a class="btn" href="{{ topic.canonical.repo }}">{{ t.viewRepo }}</a>
 {{/if}}
 {{#if topic.canonical.paper}}
-    <a class="btn secondary" href="{{ topic.canonical.paper }}">论文</a>
+    <a class="btn secondary" href="{{ topic.canonical.paper }}">{{ t.paper }}</a>
 {{/if}}
 {{#if has_article}}
-    <a class="btn secondary" href="{{ topic.blog_href }}">完整长文</a>
+    <a class="btn secondary" href="{{ topic.blog_href }}">{{ t.fullArticle }}</a>
 {{/if}}
   </div>
 
@@ -38,7 +38,7 @@
 {{/if}}
 
 {{#if evidence.length}}
-  <h2>证据</h2>
+  <h2>{{ t.evidence }}</h2>
   <ul class="evidence">
 {{#each evidence}}
     <li>
@@ -46,13 +46,13 @@
 {{#if quote}}
       <q>{{ quote }}</q>
 {{/if}}
-      <p class="src"><a href="{{ source }}">{{ host }}</a>{{#if verified}} · 已核验{{/if}}</p>
+      <p class="src"><a href="{{ source }}">{{ host }}</a>{{#if verified}} · {{ t.verified }}{{/if}}</p>
     </li>
 {{/each}}
   </ul>
 {{/if}}
 
-  <h2>链接</h2>
+  <h2>{{ t.links }}</h2>
   <ul class="links">
 {{#each topic.links}}
     <li><a class="chip" href="{{ url }}">{{ label }}</a></li>

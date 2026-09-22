@@ -35,6 +35,10 @@ export function loadTopic(root, slug, { topicsDir = 'topics' } = {}) {
     evidence,
     video,
     article: readTextIfExists(path.join(dir, 'article.md')),
+    // The English long-form body, when the topic has one. Dev.to is an English platform, and an
+    // English title over a Chinese body is the worst of both: it promises a read the copy cannot
+    // deliver. Its presence is what creates the /en/ routes — nothing is translated automatically.
+    article_en: readTextIfExists(path.join(dir, 'article.en.md')),
     readme: readTextIfExists(path.join(dir, 'README.md')),
     slides: readTextIfExists(path.join(dir, 'slides.md')),
     assetsDir: path.join(dir, 'assets'),
