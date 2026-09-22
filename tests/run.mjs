@@ -14,6 +14,7 @@ import { renderTemplate } from '../src/template.mjs';
 import { parseYaml } from '../src/yaml.mjs';
 import { verifyAll, verifyTopic } from '../src/verify.mjs';
 import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
+import { POST_LIMIT, blueskyPublish, composePost, createSession, graphemeLength, linkFacets, topicLink } from '../src/bluesky.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -340,6 +341,90 @@ test('hf: only huggingface artifacts are selected, and a slug filters them', () 
   };
   assert.equal(hfArtifacts(manifest).length, 2);
   assert.deepEqual(hfArtifacts(manifest, ['ml-sharp']).map((a) => a.path), ['huggingface/ml-sharp/README.md']);
+});
+
+// --- bluesky ----------------------------------------------------------------
+// Bluesky is the one platform in the plan that needs no developer app, so the publisher is the
+// first half of the social chain that can actually run. Its two failure modes are invisible until
+// somebody reads the result in the app: a post one character too long, and a link whose facet
+// offsets were counted in characters instead of UTF-8 bytes.
+
+const BS_CONFIG = { site: { baseUrl: 'https://example.test', language: 'en' } };
+
+test('bluesky: the post links to the topic page it belongs to', () => {
+  assert.equal(topicLink('ml-sharp', BS_CONFIG), 'https://example.test/topics/ml-sharp/');
+  assert.equal(topicLink('ml-sharp', { site: { baseUrl: 'https://a.test/' } }), 'https://a.test/topics/ml-sharp/');
+});
+
+test('bluesky: a topic written for X still publishes something true about itself', () => {
+  const topic = { slug: 'demo', source: { title: 'Fallback', platforms: { x: { title: 'X headline' } } } };
+  const post = composePost(topic, BS_CONFIG);
+  assert.ok(post.text.includes('X headline'));
+  assert.ok(post.text.endsWith(post.link), post.text);
+});
+
+test('bluesky: explicit wording is kept, and the link is added if it was forgotten', () => {
+  const withLink = composePost({ slug: 'demo', source: { platforms: { bluesky: { text: 'Hello\n\nhttps://example.test/topics/demo/' } } } }, BS_CONFIG);
+  assert.equal(withLink.text, 'Hello\n\nhttps://example.test/topics/demo/');
+
+  const without = composePost({ slug: 'demo', source: { platforms: { bluesky: { text: 'Hello' } } } }, BS_CONFIG);
+  assert.ok(without.text.startsWith('Hello'));
+  assert.ok(without.text.endsWith('https://example.test/topics/demo/'));
+});
+
+test('bluesky: a post over the limit is refused rather than silently truncated', () => {
+  const topic = { slug: 'demo', source: { platforms: { bluesky: { text: 'x'.repeat(POST_LIMIT + 1) } } } };
+  assert.throws(() => composePost(topic, BS_CONFIG), /300/);
+  assert.equal(composePost({ slug: 'demo', source: { platforms: { bluesky: { text: 'x'.repeat(POST_LIMIT - 40) } } } }, BS_CONFIG).length <= POST_LIMIT, true);
+});
+
+test('bluesky: the limit counts graphemes, so an emoji is one character and not four', () => {
+  assert.equal(graphemeLength('📸'), 1);
+  assert.equal(graphemeLength('👩🏽‍💻'), 1);
+  assert.equal(graphemeLength('abc'), 3);
+  assert.equal(graphemeLength('汉字'), 2);
+});
+
+test('bluesky: link facets are UTF-8 byte offsets, which is the whole reason Cyrillic works', () => {
+  const text = '汉字 hello https://example.com';
+  assert.equal(text.indexOf('https'), 9, 'character offset, which is NOT what the API wants');
+
+  const [facet] = linkFacets(text);
+  assert.deepEqual(facet.index, { byteStart: 13, byteEnd: 13 + 'https://example.com'.length });
+  assert.notEqual(facet.index.byteStart, 9);
+  assert.equal(facet.features[0].uri, 'https://example.com');
+  assert.equal(facet.features[0].$type, 'app.bsky.richtext.facet#link');
+});
+
+test('bluesky: a sentence-ending period is not part of the address', () => {
+  const [facet] = linkFacets('See https://example.com/a.');
+  assert.equal(facet.features[0].uri, 'https://example.com/a');
+  assert.equal(facet.index.byteEnd, 'See https://example.com/a'.length);
+});
+
+test('bluesky: a post without a link carries no facets at all', () => {
+  assert.deepEqual(linkFacets('just words'), []);
+});
+
+test('bluesky: publishing fails on a missing slug or missing credentials, before any network call', () => {
+  assert.throws(() => blueskyPublish({ root: ROOT, config: BS_CONFIG, slugs: [] }), /指定要发布的主题/);
+  assert.throws(() => blueskyPublish({ root: ROOT, config: BS_CONFIG, slugs: ['ml-sharp'] }), /缺少凭证/);
+  assert.throws(() => createSession({ identifier: '', password: '' }), /missing/);
+});
+
+test('bluesky: a dry run prints what it would send and contacts nothing', () => {
+  const lines = [];
+  const result = blueskyPublish({
+    root: ROOT,
+    config: BS_CONFIG,
+    slugs: ['ml-sharp'],
+    dryRun: true,
+    log: (line) => lines.push(String(line)),
+  });
+  assert.equal(result.ok, true);
+  assert.ok(lines.some((line) => line.includes('dry-run')), 'a dry run must say so');
+  assert.ok(lines.some((line) => line.includes('/topics/ml-sharp/')), 'the post must name its own page');
+  assert.ok(lines.some((line) => /\/300 字符/.test(line)), 'the length must be shown before publishing');
 });
 
 serverProc.kill();

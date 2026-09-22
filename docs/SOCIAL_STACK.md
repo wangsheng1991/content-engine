@@ -10,9 +10,16 @@
 
 ## 0. 结论先行
 
-1. **装什么：`Postiz`（`gitroomhq/postiz-app`）。** 不是新发现 —— RenVi 里 `ops/n8n-postiz/` 早就选了它。实测数据支持这个选择，见 §2。
-2. **不要新装 n8n。** 桥接应该在 `content-engine` 里加一条 `content publish --postiz`，用 Postiz 的 Public API，形状和已经验证过的 `--hf` 完全一样（curl 传输 + 回读校验）。多一个容器就多一个会挂的东西。
-3. **你需要的 8 个平台里，6 个一步就能通，2 个在任何开源项目里都通不了** —— 见 §3。通不了的那两个是小红书和知乎。
+1. **已经通了：Bluesky。** 2026-09-22 实测发布成功并匿名回读确认 —— 帖子在 `wangsheng199.bsky.social`。
+   命令是 `content publish --bluesky <slug>`，先加 `--dry-run` 看文案。见 §8。
+2. **装什么：`Postiz`（`gitroomhq/postiz-app`）**，用于 X / Instagram / TikTok / YouTube / Pinterest 这些 Postiz 能覆盖的平台。
+   实测数据支持这个选择，见 §2。
+3. **但自托管 Postiz 不等于省事 —— 这是最重要的一条修正。** Postiz 官方文档写明：
+   自托管时，**X、Instagram、TikTok、YouTube、Pinterest、Reddit 每一个都需要你自己去该平台注册开发者应用**。
+   见 §9。
+4. **你需要的 8 个平台里，6 个技术上能通，2 个在任何开源项目里都通不了** —— 见 §3。通不了的是小红书和知乎。
+5. **不要新装 n8n。** 桥接应该在 `content-engine` 里加一条 `content publish --<platform>`，用平台或 Postiz 的 API，
+   形状和已经验证过的 `--hf` / `--bluesky` 一样。
 
 ---
 
@@ -168,4 +175,74 @@ gh api "repos/<owner>/<name>/commits?per_page=100" --jq '[.[].commit.author.date
 
 # Postiz Public API 文档
 curl -sSL https://docs.postiz.com/public-api
+
+# 每个平台在 API 里叫什么、要不要自己注册应用（这张表决定了自托管的工作量）
+curl -sSL https://docs.postiz.com/general/platforms/overview.md
 ```
+
+---
+
+## 8. 已经打通：Bluesky（2026-09-22 实测）
+
+**为什么从它开始**：Bluesky 是这套平台里**唯一一个不需要注册开发者应用、不需要 OAuth 跳转、不需要平台审核**的。
+app password 在账号自己的设置里生成，官方 AT Protocol 接口直接收，所以整条链路就是一个凭证加两次 HTTP 调用。
+
+```
+content publish --bluesky <slug>            # 发布并回读公开接口确认
+content publish --bluesky <slug> --dry-run  # 只打印文案与字符数，不联系网络
+```
+
+- 实现：`src/bluesky.mjs`，形状与 `--hf` 一致 —— curl 传输、凭证只从环境变量读且从不打印、回读不到就不算发布成功
+- 凭证：`BLUESKY_HANDLE` + `BLUESKY_APP_PASSWORD`，已写入 agent vault（来源是 RenVi 的 `.env`）
+- 文案来源：`topics/<slug>/source.yaml` 的 `platforms.bluesky.text`；没写就回退用 `platforms.x.title` 加本页链接
+- **实测记录**：`ml-sharp` 发布成功，256/300 字符，链接 facet 落在 UTF-8 字节 199–262；
+  匿名调 `public.api.bsky.app` 独立回读确认帖子存在、正文与链接都对
+- 两个只有踩过才知道的坑，都已写进测试：**Bluesky 按 grapheme 计长度**（一个 emoji 算 1 不算 4），
+  **链接 facet 用 UTF-8 字节偏移**（不是字符偏移 —— 中文/俄文内容会错位）
+
+---
+
+## 9. 自托管的真实代价（对 §0 第 2 条的重要修正）
+
+Postiz 文档里有一列容易被跳过，它决定了这条路的工作量：
+
+| 平台 | 自托管时要不要自己注册开发者应用 |
+|---|---|
+| X · Instagram · TikTok · YouTube · Pinterest · Reddit · LinkedIn · Facebook · Threads · Mastodon · VK · Tumblr | **要** |
+| **Bluesky · Mastodon(凭证模式) · Nostr · Medium · Dev.to · Hashnode · WordPress · Lemmy · ListMonk** | **不要**，凭证粘进 Postiz 即可 |
+| Skool | 靠浏览器扩展 |
+
+**结论**：自托管 Postiz **不是**绕过 X / Meta / Google 的那道门。
+谁来跑这个实例，谁就得自己去 X（API 要付费）、Meta（要应用审核）、TikTok（要审批）、Google（要 OAuth 验证）注册应用。
+Postiz Cloud 帮你做完这些事，代价是钱和数据托管。
+
+所以「能立刻处理」的平台，是第二行那批 **不需要开发者应用的**：
+`Dev.to` / `Hashnode` / `Medium` / `WordPress` 尤其值得看 —— 它们收 markdown、上限 10 万字符、
+凭证即用，正好接住 content-engine 产出的长文。
+
+---
+
+## 10. 进度与待办
+
+| 事项 | 状态 |
+|---|---|
+| Bluesky 发布 | ✅ **已通**，见 §8 |
+| Dev.to / Hashnode / Medium（markdown、无开发者应用） | ⏳ 待办 —— 只需一个 API key，投入产出比最高 |
+| Postiz 跑起来（docker）+ 公网回调 + 连账号 | ⏳ 待办，见 §5 坑 ① |
+| X / Instagram / TikTok / YouTube / Pinterest | ⏳ 待办 —— 每个都要先注册开发者应用，X 的 API 还要付费 |
+| **Reddit 半自动发帖** | ⏳ 待办，见下 |
+| 小红书 / 知乎 | ⛔ 不可自动化（无官方接口，只有浏览器自动化） |
+| 内容 → 注册/首图 的埋点 | ⏳ 待办 —— 见 §5 坑 ③，**这是北星指标能不能测的关键** |
+
+### Reddit 待办的具体内容
+
+目标：**手动点提交，但内容自动就位。**
+
+1. **先花 5 秒判定 URL 预填是否有效**：在自己浏览器里打开
+   `https://old.reddit.com/r/test/submit?title=HELLO&text=WORLD`
+   —— 标题和正文框是填好的，就说明这条路可用；是空的就淘汰。
+2. 确认**你自己的 old.reddit.com 是否已登录**（只登录新版的话，方案 1 基本作废）。
+3. 确认 **Reddit 原生有没有定时发布**（本机无法访问 Reddit，没能核实；若有则完全不用第三方）。
+4. 无论上面结果如何，做 `content publish --manual reddit`：输出 `title.txt` / `body.md` / `open.url`，
+   并把标题推进剪贴板。**剪贴板方案零风险、平台不可检测，是兜底且推荐的做法。**
+5. 验证脚本已备好：`shared_env/playwright/reddit-prefill.mjs`（Reddit 一旦可达即可运行）。

@@ -92,6 +92,8 @@
 | 站点自动部署 | gh token（含 `workflow` scope） | ✅ 已具备 | 已解锁，推 main 即上线 |
 | HF 模型/数据集卡发布 | `HF_TOKEN` | ✅ **已具备**（2026-09-21，账号 `shi9214`） | 已解锁：`content publish --hf` 已验证可用 |
 | 外部页面稳定抓取 | `FIRECRAWL_API_KEY` | ❌ **缺** | 取证更快更稳（现在是 curl 顶替） |
+| Bluesky 发布 | `BLUESKY_HANDLE` + `BLUESKY_APP_PASSWORD` | ✅ **已具备**（vault） | 已解锁：`content publish --bluesky <slug>` 已验证可用（2026-09-22） |
+| 其它社媒 | 各平台注册开发者应用（X 的 API 还要付费） | ❌ **未做** | 见 `docs/SOCIAL_STACK.md` §9 —— 自托管不省这一步 |
 | 海外社媒排程 | Postiz API key + 各平台 OAuth | ⚠️ 基建已建，账号未连 | Pinterest/IG/TikTok/X/YouTube 自动排程 |
 | 小红书 | 浏览器登录态 | ❌ 本机 Chrome 未登录 | 生成与同步自动，**发布仍人工** |
 | Reddit | —（按规则不自动化） | 人工 | 只自动发现机会 |

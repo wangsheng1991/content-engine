@@ -39,6 +39,9 @@ links:
   - label: "模型权重"
     url: https://ml-site.cdn-apple.com/models/sharp/sharp_2572gikvuh.pt
 platforms:
+  bluesky:
+    text: |
+      Apple's SHARP turns one photograph into a metric 3D Gaussian scene in under a second, in a single feedforward pass — LPIPS down 25–34%, DISTS down 21–43%, and the code and weights are public.
   xiaohongshu:
     title: "一张照片变 3D 场景，还不到 1 秒📸"
     hook: "Apple 开源了 SHARP：单张照片直接生成能实时渲染的 3D 高斯。"

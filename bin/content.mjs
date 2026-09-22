@@ -16,6 +16,7 @@ import { serve } from '../src/serve.mjs';
 import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
 import { verifyAll } from '../src/verify.mjs';
 import { hfPublish } from '../src/hf.mjs';
+import { blueskyPublish } from '../src/bluesky.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -39,7 +40,7 @@ const HELP = `content — GitHub-first content engine
 用法:
   content build [slug...] [--all] [--site-only] [--out <dir>]
   content verify [slug...] [--online] [--strict]
-  content publish [--git] [--dry-run] [--hf] [--repo <owner/name>] [--public]
+  content publish [--git] [--dry-run] [--hf] [--bluesky [<slug>...]] [--repo <owner/name>] [--public]
   content new <slug> [--title "..."] [--date YYYY-MM-DD]
   content list
   content serve [--port 4173] [--dir <dir>]
@@ -49,6 +50,10 @@ const HELP = `content — GitHub-first content engine
   topics/<slug>/ 是唯一内容源；dist/ 全部由 content build 生成，不手改。
   Tier A 产物（网站/GitHub/Hugging Face/RSS）可全自动发布；
   Tier B 产物（小红书/Reddit/X/知乎/PPT/视频脚本）一律停在草稿等人工确认。
+
+  content publish --bluesky <slug> 单列：Bluesky 是本套平台里唯一不需要注册开发者应用的，
+  凭证放 vault（BLUESKY_HANDLE / BLUESKY_APP_PASSWORD）即可发布，并回读公开接口确认。
+  先加 --dry-run 看文案。
 
   content verify 是发布前的质量闸门：每条 claim 必须带一段能在它自己的
   source 里逐字找到的 quote。默认只做不需要联网的结构检查；加 --online
@@ -119,6 +124,20 @@ async function main() {
           repoOverride: typeof flags.repo === 'string' ? flags.repo : undefined,
           isPrivate: !flags.public,
           token,
+          dryRun: Boolean(flags['dry-run']),
+          log: console.log,
+        });
+      }
+      if (flags.bluesky) {
+        // `--bluesky <slug>` and `--bluesky` plus a positional slug both work: the argument parser
+        // swallows the first token after the flag, so a bare slug would otherwise vanish.
+        const blueSlugs = [...(typeof flags.bluesky === 'string' ? [flags.bluesky] : []), ...rest];
+        blueskyPublish({
+          root: ROOT,
+          config,
+          slugs: blueSlugs,
+          identifier: process.env.BLUESKY_HANDLE || process.env.BLUESKY_IDENTIFIER,
+          password: process.env.BLUESKY_APP_PASSWORD,
           dryRun: Boolean(flags['dry-run']),
           log: console.log,
         });
