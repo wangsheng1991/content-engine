@@ -48,7 +48,7 @@
 | 技术资产 | GitHub 仓库（自动）；Hugging Face（`content publish --hf`） | 飞轮的锚点，downloads/likes 是可验证指标 | ✅ 已验证 |
 | PPT | pandoc → `deck.pptx` | 本机有 pandoc；输出过 `unzip -t` 校验 | ✅ 已验证 |
 | 视频 | `video.yaml` → storyboard.json + ffmpeg | 先只到脚本与分镜，别假装能一键出片 | ✅ 到脚本 |
-| 海外社媒排程 | RenVi：`ops/n8n-postiz`（n8n + Postiz，docker） | 走官方 API 排程 Pinterest/IG/TikTok/X/YouTube；已建好 | ⚠️ 待连账号 |
+| 海外社媒排程 | RenVi：`ops/n8n-postiz`（n8n + Postiz，docker） | 走官方 API 排程 Pinterest/IG/TikTok/X/YouTube；已建好 | ⚠️ 待连账号（选型实测见 `docs/SOCIAL_STACK.md`） |
 | 定时/触发 | `penguin schedule` | 本机 CLI 直接可加定时任务 | ✅ 可用 |
 | 发布后自检 | `shared_env/playwright/*` | 真浏览器核对，避免"推上去了但页面是坏的" | ✅ 已验证 |
 
