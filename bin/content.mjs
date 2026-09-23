@@ -221,7 +221,12 @@ async function main() {
         log: json ? () => {} : console.log,
       });
 
-      if (result.dryRun) break;
+      if (result.dryRun) {
+        // `--json --dry-run` must still answer: a caller that gets empty output cannot tell a
+        // successful no-op from a crash.
+        if (json) console.log(JSON.stringify(result, null, 2));
+        break;
+      }
       if (json) {
         console.log(JSON.stringify(result, null, 2));
         break;
