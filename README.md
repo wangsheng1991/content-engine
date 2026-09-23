@@ -41,6 +41,7 @@ node bin/content.mjs new my-topic          # scaffold a topic directory
 node bin/content.mjs serve                 # preview dist/site at :4173
 node bin/content.mjs publish               # report what ships and what waits
 node bin/content.mjs publish --git         # commit + push the source of truth
+node bin/content.mjs feedback              # read the numbers back from Dev.to and Bluesky
 node tests/run.mjs                         # the test suite (npm test)
 ```
 
@@ -190,10 +191,71 @@ rather than guessing.
 4. Push to `main` — the workflow builds every topic, runs the tests, prints the
    artifact report and deploys `dist/site`.
 
+## Feedback: did anyone look?
+
+Publishing is a write; this is the read. `content feedback` sweeps the two
+channels that carry this content and writes one record per **content unit** — one
+`(topic, channel)` pair — into `data/feedback/`:
+
+```bash
+node bin/content.mjs feedback --dry-run     # print the endpoints, send nothing
+node bin/content.mjs feedback               # sweep both channels and write the files
+node bin/content.mjs feedback ml-sharp      # only the topics named
+node bin/content.mjs feedback --json        # machine-readable on stdout, files still written
+```
+
+```
+data/feedback/ml-sharp.devto.json
+data/feedback/ml-sharp.bluesky.json
+data/feedback/wan-i2v-first-frame.devto.json
+data/feedback/wan-i2v-first-frame.bluesky.json
+data/feedback/_account.json       # follower counts and Dev.to totals, which no unit owns
+```
+
+`data/feedback/` is git-ignored: these numbers change daily and belong to the
+sweep, not to the history.
+
+Two things decide what a number means here:
+
+- **Dev.to needs `DEVTO_API_KEY`** (vault). `page_views_count` has a value only
+  through the authenticated `/articles/me*` endpoints — the public copy of the
+  same article reports `null`. Without the key the command stops before sending
+  anything rather than writing zeroes.
+- **Bluesky has no view count at all.** Impression data does not exist in the
+  public API; do not go looking for it. What it does have is `getLikes`, so the
+  record keeps the list of handles that liked a post — a name is a lead.
+
+A remote record is joined back to a topic by **the content's own link**, never by
+title or date: Dev.to returns the `canonical_url` the article was published with,
+and every Bluesky post carries the topic page the composer appended. Anything on
+the account that carries neither is printed as unmatched and not written.
+
+**Running it daily (not installed yet).** Either a PenguinHarness scheduled task
+(`<app_data_dir>/agents/<agent_id>/agent_state/schedule/feedback.toml`) with
+`prompt = "在 ~/code/content-engine 跑 node bin/content.mjs feedback 并汇报数字"`
+and `period = "24h"`, or a launchd agent on this machine:
+
+```xml
+<!-- ~/Library/LaunchAgents/com.wangsheng.content-feedback.plist -->
+<key>ProgramArguments</key>
+<array>
+  <string>/bin/bash</string>
+  <string>-lc</string>
+  <string>cd ~/code/content-engine &amp;&amp; node bin/content.mjs feedback >> /tmp/content-feedback.log 2>&1</string>
+</array>
+<key>StartCalendarInterval</key>
+<dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+```
+
+Neither is set up: the schedule waits until a few days of real numbers exist, so
+that the first run has something to compare against. Note the proxy — both need
+`https_proxy=http://127.0.0.1:1082` in the environment to reach Dev.to and the
+Bluesky appview.
+
 ## Layout
 
 ```
-bin/content.mjs        CLI: build / images / lint / publish / new / list / serve
+bin/content.mjs        CLI: build / images / lint / publish / feedback / new / list / serve
 src/build.mjs          the compiler and the artifact manifest
 src/topic.mjs          topic loading + validation
 src/yaml.mjs           restricted YAML parser
@@ -205,10 +267,12 @@ src/lint.mjs           the copywriting gate (sparanoid/chinese-copywriting-guide
 src/i18n.mjs           the English routes and the chrome strings for each language
 src/deck.mjs           pandoc bridge (deck.pptx)
 src/publish.mjs        tier report + optional git commit/push
+src/feedback.mjs       read the numbers back from Dev.to and Bluesky
 src/serve.mjs          static preview server
 templates/             website/, github/, huggingface/, xiaohongshu/,
                        reddit/, x/, zhihu/, video/
 topics/                the content itself
+data/feedback/         the numbers the platforms report, git-ignored
 tests/run.mjs          parser + end-to-end tests
 dist/                  generated, git-ignored, never edited by hand
 ```

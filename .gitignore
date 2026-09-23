@@ -5,3 +5,5 @@ dist-*/
 *.log
 .env
 .env.*
+# Numbers from the platforms change every day; only what was published belongs in git.
+data/feedback/

@@ -126,7 +126,8 @@ function readBack(uri, appview = APPVIEW, attempts = 5) {
   return { verified: false, reason: '公开接口还读不到这条帖子（可能只是索引慢）' };
 }
 
-function postUrl(post) {
+/** The public permalink of a post — shared with the feedback sweep, which stores it per content unit. */
+export function postUrl(post) {
   const handle = post.author?.handle ?? 'bsky.app';
   const rkey = String(post.uri).split('/').pop();
   return `https://bsky.app/profile/${handle}/post/${rkey}`;

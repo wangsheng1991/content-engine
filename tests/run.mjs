@@ -56,6 +56,19 @@ import {
   mimeFor,
   parseArgs as parseI2vArgs,
 } from '../scripts/wan-i2v.mjs';
+import {
+  DEFAULT_HANDLE,
+  FEEDBACK_DIR,
+  blueskyRecord,
+  dateKey,
+  describe,
+  devtoRecord,
+  fetchFeedback,
+  planRequests,
+  slugFromCanonical,
+  slugFromPost,
+  unitId,
+} from '../src/feedback.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -1411,6 +1424,231 @@ test('lint: the compiled topics pass their own gate', () => {
   const { reports, ok } = lintAll(ROOT, { log: () => {} });
   assert.ok(reports.length >= 2);
   assert.ok(ok, reports.flatMap((r) => r.problems).join(' | '));
+});
+
+// --- feedback (the read-only sweep after publishing) ---------------------------
+// Every case here is offline: the sweep takes its transport as an argument, so the tests hand it
+// fixtures and a request that is not in the fixture fails the test instead of hitting the network.
+const FEEDBACK_BASE = loadConfig(ROOT).site.baseUrl.replace(/\/+$/, '');
+
+/** The appview's shape, trimmed to the fields the sweep reads. */
+function feedPost({ rkey, createdAt, text, link, likeCount = 0 }) {
+  return {
+    post: {
+      uri: `at://did:plc:3abc/app.bsky.feed.post/${rkey}`,
+      author: { handle: DEFAULT_HANDLE, did: 'did:plc:3abc' },
+      record: {
+        createdAt,
+        text,
+        ...(link ? { facets: [{ features: [{ $type: 'app.bsky.richtext.facet#link', uri: link }], index: { byteStart: 0, byteEnd: 1 } }] } : {}),
+      },
+      likeCount,
+      repostCount: 0,
+      replyCount: 0,
+      quoteCount: 0,
+      bookmarkCount: 0,
+    },
+  };
+}
+
+function fakeTransport(routes) {
+  const asked = [];
+  return {
+    asked,
+    json: (url) => {
+      asked.push(url);
+      for (const [fragment, value] of Object.entries(routes)) {
+        if (url.includes(fragment)) return Promise.resolve(value);
+      }
+      return Promise.reject(new Error(`unexpected request: ${url}`));
+    },
+  };
+}
+
+const FEEDBACK_ROUTES = {
+  '/articles/me/published': [
+    {
+      id: 4714972,
+      title: 'Image-to-video in three parameters',
+      url: 'https://dev.to/dlss/image-to-video-27ll',
+      canonical_url: `${FEEDBACK_BASE}/blog/wan-i2v-first-frame/`,
+      published_timestamp: '2026-09-22T10:09:33Z',
+      page_views_count: 0,
+      public_reactions_count: 0,
+      comments_count: 0,
+      user: { username: 'dlss', user_id: 4137297 },
+    },
+    {
+      id: 4714731,
+      title: 'SHARP：单张图的秒级 3D 高斯视图合成',
+      url: 'https://dev.to/dlss/sharp-9a1',
+      canonical_url: `${FEEDBACK_BASE}/en/blog/ml-sharp/`,
+      published_timestamp: '2026-09-22T09:48:32Z',
+      page_views_count: 4,
+      public_reactions_count: 0,
+      comments_count: 0,
+    },
+    // Not ours: the canonical points at somebody else's blog.
+    { id: 999, title: 'Elsewhere', canonical_url: 'https://example.com/blog/elsewhere/', page_views_count: 10 },
+  ],
+  '/analytics/totals': {
+    page_views: { total: 4, average_read_time_in_seconds: 30, total_read_time_in_seconds: 120 },
+    reactions: { total: 0, like: 0 },
+    comments: { total: 0 },
+    follows: { total: 0 },
+  },
+  '/analytics/historical': { '2026-09-22': { page_views: { total: 4 } } },
+  'getProfile?actor=': { handle: DEFAULT_HANDLE, did: 'did:plc:3abc', followersCount: 12, followsCount: 24, postsCount: 13 },
+  'getAuthorFeed?actor=': {
+    feed: [
+      feedPost({ rkey: '3mw3ybt3v6o2l', createdAt: '2026-09-22T10:09:20.817Z', text: 'Wan 2.6 image-to-video, five seconds.', link: `${FEEDBACK_BASE}/topics/wan-i2v-first-frame/` }),
+      feedPost({ rkey: '3mw3t223ifg2x', createdAt: '2026-09-22T08:35:28.674Z', text: "Apple's SHARP, one photo in.", link: `${FEEDBACK_BASE}/topics/ml-sharp/`, likeCount: 3 }),
+      feedPost({ rkey: '3mouh6wwnjr25', createdAt: '2026-06-22T08:18:31.001Z', text: '인테리어 업체 부르기 전, 이 사진 한 장 보세요. RenVi #인테리어' }),
+    ],
+  },
+  'getLikes?uri=': { likes: [{ actor: { handle: 'fan.bsky.social', did: 'did:plc:fan' }, indexedAt: '2026-09-22T11:00:00Z' }] },
+};
+
+test('feedback: an article is joined to its topic through the canonical URL it was published with', () => {
+  assert.equal(slugFromCanonical(`${FEEDBACK_BASE}/blog/ml-sharp/`, FEEDBACK_BASE), 'ml-sharp');
+  assert.equal(slugFromCanonical(`${FEEDBACK_BASE}/en/blog/wan-i2v-first-frame/`, FEEDBACK_BASE), 'wan-i2v-first-frame');
+  assert.equal(slugFromCanonical(`${FEEDBACK_BASE}/blog/ml-sharp/?ref=ml-sharp`, FEEDBACK_BASE), 'ml-sharp');
+  // The topic page and an article on somebody else's blog are not this site's blog canonical.
+  assert.equal(slugFromCanonical(`${FEEDBACK_BASE}/topics/ml-sharp/`, FEEDBACK_BASE), null);
+  assert.equal(slugFromCanonical('https://dev.to/dlss/copy-9a1', FEEDBACK_BASE), null);
+  assert.equal(slugFromCanonical(null, FEEDBACK_BASE), null);
+});
+
+test('feedback: a Bluesky post is joined through the topic link it carries, never by its wording', () => {
+  const post = feedPost({ rkey: '3mw3ybt3v6o2l', createdAt: '2026-09-22T10:09:20.817Z', text: 'Wan 2.6.', link: `${FEEDBACK_BASE}/topics/wan-i2v-first-frame/` }).post;
+  assert.equal(slugFromPost(post, FEEDBACK_BASE), 'wan-i2v-first-frame');
+  // The facet is what carries the link; the text may have been trimmed by a client.
+  assert.equal(slugFromPost({ ...post, record: { ...post.record, text: 'trimmed' } }, FEEDBACK_BASE), 'wan-i2v-first-frame');
+  assert.equal(
+    slugFromPost({ ...post, record: { createdAt: post.record.createdAt, text: `看这里 ${FEEDBACK_BASE}/topics/ml-sharp/?x=1 谢谢` } }, FEEDBACK_BASE),
+    'ml-sharp',
+  );
+  const foreign = feedPost({ rkey: '3mouh6wwnjr25', createdAt: '2026-06-22T08:18:31.001Z', text: '인테리어 업체 부르기 전 RenVi' }).post;
+  assert.equal(slugFromPost(foreign, FEEDBACK_BASE), null);
+});
+
+test('feedback: the record shapes carry the numbers, and a number the platform withheld stays null', () => {
+  const article = FEEDBACK_ROUTES['/articles/me/published'][0];
+  const record = devtoRecord(article, { topic: 'wan-i2v-first-frame', fetchedAt: '2026-09-23T09:00:00Z' });
+  assert.equal(record.topic, 'wan-i2v-first-frame');
+  assert.equal(record.channel, 'devto');
+  assert.equal(record.external_id, 4714972);
+  assert.equal(record.canonical_url, `${FEEDBACK_BASE}/blog/wan-i2v-first-frame/`);
+  assert.deepEqual(record.metrics, { pageViews: 0, reactions: 0, comments: 0 });
+  // A zero is an answer; a null means the key was refused, and the two must not look alike.
+  assert.equal(devtoRecord({ id: 1, page_views_count: null }, { topic: 'x', fetchedAt: 'now' }).metrics.pageViews, null);
+
+  const bsky = blueskyRecord(feedPost({ rkey: '3mw3ybt3v6o2l', createdAt: '2026-09-22T10:09:20.817Z', text: 'x' }).post, {
+    topic: 'wan-i2v-first-frame',
+    fetchedAt: '2026-09-23T09:00:00Z',
+    likers: [{ actor: { handle: 'fan.bsky.social', did: 'did:plc:fan' }, indexedAt: '2026-09-22T11:00:00Z' }],
+  });
+  assert.deepEqual(Object.keys(bsky.metrics), ['likeCount', 'repostCount', 'replyCount', 'quoteCount', 'bookmarkCount']);
+  assert.equal(bsky.external_id, 'at://did:plc:3abc/app.bsky.feed.post/3mw3ybt3v6o2l');
+  assert.equal(bsky.external_url, `https://bsky.app/profile/${DEFAULT_HANDLE}/post/3mw3ybt3v6o2l`);
+  assert.equal(bsky.published_at, '2026-09-22T10:09:20.817Z');
+  assert.deepEqual(bsky.likers, [{ handle: 'fan.bsky.social', did: 'did:plc:fan', indexedAt: '2026-09-22T11:00:00Z' }]);
+  assert.equal(unitId('ml-sharp', 'bluesky'), 'ml-sharp.bluesky');
+});
+
+test('feedback: --dry-run names every endpoint and sends nothing', async () => {
+  const transport = fakeTransport({});
+  const result = await fetchFeedback({ root: ROOT, config: loadConfig(ROOT), apiKey: 'unused', transport, dryRun: true, log: () => {} });
+  assert.ok(result.dryRun);
+  assert.equal(transport.asked.length, 0, 'dry-run must not send a request');
+  const urls = result.plan.map((r) => r.url).join('\n');
+  for (const fragment of ['/articles/me/published', '/analytics/totals', '/analytics/historical?start=', 'getProfile?actor=', 'getAuthorFeed?actor=', 'getLikes?uri=']) {
+    assert.ok(urls.includes(fragment), `the plan mentions ${fragment}`);
+  }
+  // The history window is the seven days up to and including today.
+  const historical = result.plan.find((r) => r.url.includes('historical')).url.split('/analytics/historical')[1];
+  assert.equal(historical, `?start=${dateKey(new Date(), -6)}&end=${dateKey(new Date(), 0)}`);
+});
+
+test('feedback: one file per content unit, and a second run the same day overwrites it', async () => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'feedback-'));
+  try {
+    const first = await fetchFeedback({
+      root: ROOT,
+      config: loadConfig(ROOT),
+      outDir,
+      apiKey: 'test',
+      transport: fakeTransport(FEEDBACK_ROUTES),
+      now: new Date('2026-09-23T09:00:00Z'),
+      log: () => {},
+    });
+    assert.deepEqual(
+      first.records.map((r) => unitId(r.topic, r.channel)),
+      ['ml-sharp.bluesky', 'ml-sharp.devto', 'wan-i2v-first-frame.bluesky', 'wan-i2v-first-frame.devto'],
+    );
+    assert.deepEqual(fs.readdirSync(outDir).sort(), ['_account.json', 'ml-sharp.bluesky.json', 'ml-sharp.devto.json', 'wan-i2v-first-frame.bluesky.json', 'wan-i2v-first-frame.devto.json']);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(outDir, 'ml-sharp.devto.json'), 'utf8')).metrics.pageViews, 4);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(outDir, 'ml-sharp.bluesky.json'), 'utf8')).metrics.likeCount, 3);
+    // The account-level numbers, which no single content unit owns.
+    const account = JSON.parse(fs.readFileSync(path.join(outDir, '_account.json'), 'utf8'));
+    assert.equal(account.bluesky.followersCount, 12);
+    assert.equal(account.devto.user_id, 4137297);
+    assert.equal(account.devto.totals.page_views.total, 4);
+
+    // A remote record with no topic behind it is reported instead of being written as a fake unit.
+    assert.ok(first.unmatched.some((u) => u.channel === 'devto' && u.external_id === 999));
+    assert.ok(first.unmatched.some((u) => u.channel === 'bluesky' && /RenVi/.test(u.text)));
+
+    await fetchFeedback({
+      root: ROOT,
+      config: loadConfig(ROOT),
+      outDir,
+      apiKey: 'test',
+      transport: fakeTransport(FEEDBACK_ROUTES),
+      now: new Date('2026-09-23T21:00:00Z'),
+      log: () => {},
+    });
+    assert.equal(fs.readdirSync(outDir).length, 5, 'a second run overwrites; it does not append');
+    const again = JSON.parse(fs.readFileSync(path.join(outDir, 'ml-sharp.devto.json'), 'utf8'));
+    assert.equal(again.topic, 'ml-sharp');
+    assert.equal(again.fetched_at, '2026-09-23T21:00:00Z', 'the record was replaced');
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  }
+});
+
+test('feedback: without a key, or with one channel down, it says so instead of inventing numbers', async () => {
+  const transport = fakeTransport({});
+  await assert.rejects(
+    () => fetchFeedback({ root: ROOT, config: loadConfig(ROOT), outDir: os.tmpdir(), apiKey: undefined, transport, log: () => {} }),
+    /DEVTO_API_KEY/,
+  );
+  assert.equal(transport.asked.length, 0, 'no key means no request at all');
+
+  const partial = await fetchFeedback({
+    root: ROOT,
+    config: loadConfig(ROOT),
+    outDir: fs.mkdtempSync(path.join(os.tmpdir(), 'feedback-')),
+    apiKey: 'test',
+    transport: {
+      asked: [],
+      json: (url) => (url.includes('dev.to') ? Promise.reject(new Error('dev.to 返回 HTTP 401：unauthorized')) : fakeTransport(FEEDBACK_ROUTES).json(url)),
+    },
+    log: () => {},
+  });
+  assert.equal(partial.errors.length, 1);
+  assert.match(partial.errors[0].message, /401/);
+  assert.ok(partial.records.every((r) => r.channel === 'bluesky'), 'the working channel still lands');
+  fs.rmSync(path.dirname(partial.files[0]), { recursive: true, force: true });
+});
+
+test('feedback: the summary names the unit and every metric, and the numbers never enter git', () => {
+  const line = describe({ topic: 'ml-sharp', channel: 'bluesky', metrics: { likeCount: 0, repostCount: null }, likers: [{ handle: 'fan.bsky.social' }] });
+  assert.ok(line.startsWith('ml-sharp.bluesky'));
+  assert.ok(line.includes('likeCount 0'));
+  assert.ok(line.includes('repostCount —'), 'a withheld metric reads as missing, not as zero');
+  assert.ok(line.includes('fan.bsky.social'));
+  assert.ok(fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8').includes(`${FEEDBACK_DIR}/`));
 });
 
 await Promise.all(pending);

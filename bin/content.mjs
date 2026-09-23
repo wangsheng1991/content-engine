@@ -3,6 +3,7 @@
 //
 //   content build [slug...] [--all] [--site-only] [--out dist]
 //   content publish [--git] [--dry-run]
+//   content feedback [slug...] [--dry-run] [--json] [--out <dir>] [--handle <handle>]
 //   content new <slug> [--title "..."]
 //   content list
 //   content serve [--port 4173]
@@ -20,6 +21,7 @@ import { BACKENDS, chromePath, coverOf, defaultBackend, renderImages } from '../
 import { lintAll } from '../src/lint.mjs';
 import { blueskyPublish } from '../src/bluesky.mjs';
 import { devtoPublish } from '../src/devto.mjs';
+import { DEFAULT_HANDLE, describe, fetchFeedback } from '../src/feedback.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -47,6 +49,7 @@ const HELP = `content — GitHub-first content engine
   content verify [slug...] [--online] [--strict]
   content publish [--git] [--dry-run] [--hf] [--bluesky [<slug>...]] [--devto [<slug>...]] [--draft]
                   [--repo <owner/name>] [--public]
+  content feedback [slug...] [--dry-run] [--json] [--out <dir>] [--handle <handle>]
   content new <slug> [--title "..."] [--date YYYY-MM-DD]
   content list
   content serve [--port 4173] [--dir <dir>]
@@ -86,6 +89,12 @@ const HELP = `content — GitHub-first content engine
   source 里逐字找到的 quote。默认只做不需要联网的结构检查；加 --online
   才回源逐字核对（本机到源站的路由时好时坏，取不到的源报 unreachable，
   不会被当成通过）；CI 里用 --online --strict 让取不到也失败。
+
+  content feedback 是发布之后的那一半，只读：把 Dev.to 和 Bluesky 的反馈数字抓回来，
+  一个内容单元（= 一对 topic/channel）一个文件，放在 data/feedback/ 下，不进 git。
+  Dev.to 需要 DEVTO_API_KEY（page_views_count 只有带 api-key 才有值，公开接口是 null）；
+  Bluesky 完全公开，但没有任何展示量字段 —— 它给的是点赞者名单，那才是有用的线索。
+  一天内重复跑覆盖同一条记录，不追加。加 --dry-run 先看它会请求哪些端点。
 `;
 
 async function main() {
@@ -196,6 +205,47 @@ async function main() {
             log: console.log,
           });
         }
+      }
+      break;
+    }
+    case 'feedback': {
+      const json = Boolean(flags.json);
+      const result = await fetchFeedback({
+        root: ROOT,
+        config,
+        slugs: rest.length ? rest : undefined,
+        outDir: flags.out ? path.resolve(ROOT, flags.out) : undefined,
+        dryRun: Boolean(flags['dry-run']),
+        apiKey: process.env.DEVTO_API_KEY,
+        handle: typeof flags.handle === 'string' ? flags.handle : DEFAULT_HANDLE,
+        log: json ? () => {} : console.log,
+      });
+
+      if (result.dryRun) break;
+      if (json) {
+        console.log(JSON.stringify(result, null, 2));
+        break;
+      }
+
+      console.log('');
+      console.log('内容单元反馈：');
+      for (const record of result.records) console.log(`  ${describe(record)}`);
+      if (!result.records.length) console.log('  （没有匹配到任何已发布的内容单元）');
+      const { bluesky, devto } = result.account ?? {};
+      console.log('');
+      if (bluesky) console.log(`Bluesky @${bluesky.handle}：粉丝 ${bluesky.followersCount ?? '—'} · 关注 ${bluesky.followsCount ?? '—'} · 帖子 ${bluesky.postsCount ?? '—'}`);
+      if (devto) console.log(`Dev.to ${devto.username ?? '（未知账号）'}（user ${devto.user_id ?? '—'}）：浏览量 ${devto.totals?.page_views?.total ?? '—'} · 互动 ${devto.totals?.reactions?.total ?? '—'} · 评论 ${devto.totals?.comments?.total ?? '—'} · 关注 ${devto.totals?.follows?.total ?? '—'}`);
+      for (const item of result.unmatched.slice(0, 5)) {
+        console.log(`  · 未匹配到主题（${item.channel}）：${item.title ?? item.text ?? item.external_id ?? ''}`.slice(0, 140));
+      }
+      if (result.unmatched.length > 5) console.log(`  · 另有 ${result.unmatched.length - 5} 条平台上的历史内容不属于本仓库任何主题`);
+      console.log('');
+      console.log(`写入 ${result.files.length} 个文件到 ${path.relative(ROOT, flags.out ? path.resolve(ROOT, flags.out) : path.join(ROOT, 'data/feedback'))}/`);
+      const missing = result.records.flatMap((r) => Object.entries(r.metrics ?? {}).filter(([, v]) => v === null).map(([k]) => `${r.topic}.${r.channel} ${k}`));
+      if (missing.length) console.log(`数字为空的字段：${missing.join('、')} —— 检查 DEVTO_API_KEY 是否被接受`);
+      for (const error of result.errors) {
+        console.log(`! ${error.channel} 抓取失败：${error.message}`);
+        process.exitCode = 1;
       }
       break;
     }
