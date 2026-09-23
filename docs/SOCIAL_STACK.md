@@ -250,7 +250,7 @@ Postiz Cloud 帮你做完这些事，代价是钱和数据托管。
 | 事项 | 状态 |
 |---|---|
 | Bluesky 发布 | ✅ **已通**，见 §8 |
-| **Dev.to 长文发布** | 🟡 **代码已就绪**（`src/devto.mjs`，11 项测试），只差 `DEVTO_API_KEY` —— 见 §8.2 |
+| **Dev.to 长文发布** | ✅ **已通**（账号 `dlss` 上已有 2 篇已发布）。遗留：只能 `POST` 不能更新 —— 选型结论见 `docs/ops-system/LANDSCAPE.md` |
 | Hashnode / Medium（同类，markdown、无开发者应用） | ⏳ 待办 —— Dev.to 跑通后再照搬 |
 | Postiz 跑起来（docker）+ 公网回调 + 连账号 | ⏳ 待办，见 §5 坑 ① |
 | X / Instagram / TikTok / YouTube / Pinterest | ⏳ 待办 —— 每个都要先注册开发者应用，X 的 API 还要付费 |

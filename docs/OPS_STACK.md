@@ -93,7 +93,7 @@
 | HF 模型/数据集卡发布 | `HF_TOKEN` | ✅ **已具备**（2026-09-21，账号 `shi9214`） | 已解锁：`content publish --hf` 已验证可用 |
 | 外部页面稳定抓取 | `FIRECRAWL_API_KEY` | ❌ **缺** | 取证更快更稳（现在是 curl 顶替） |
 | Bluesky 发布 | `BLUESKY_HANDLE` + `BLUESKY_APP_PASSWORD` | ✅ **已具备**（vault） | 已解锁：`content publish --bluesky <slug>` 已验证可用（2026-09-22） |
-| Dev.to 长文分发 | `DEVTO_API_KEY`（账号设置里自己生成，无审核） | ❌ **缺**（代码已就绪） | 长文带上 canonical 发到 Dev.to：`content publish --devto <slug>`，见 `docs/SOCIAL_STACK.md` §8.2 |
+| Dev.to 长文分发 | `DEVTO_API_KEY`（账号设置里自己生成，无审核） | ✅ **已具备**（vault；账号 `dlss` 上已有 2 篇已发布） | 长文带上 canonical 发到 Dev.to：`content publish --devto <slug>`，见 `docs/SOCIAL_STACK.md` §8.2 |
 | 其它社媒 | 各平台注册开发者应用（X 的 API 还要付费） | ❌ **未做** | 见 `docs/SOCIAL_STACK.md` §9 —— 自托管不省这一步 |
 | 海外社媒排程 | Postiz API key + 各平台 OAuth | ⚠️ 基建已建，账号未连 | Pinterest/IG/TikTok/X/YouTube 自动排程 |
 | 小红书 | 浏览器登录态 | ❌ 本机 Chrome 未登录 | 生成与同步自动，**发布仍人工** |
@@ -150,7 +150,7 @@ content publish --devto <slug> --dry-run  # 只看标题/标签/canonical
 - Google 补全取证、Brave SERP 取证在真浏览器里跑通。
 
 **未验证（缺凭证或未接）**
-- **Dev.to 的真实发布**（代码与测试已就绪，缺 `DEVTO_API_KEY`；端点已用无效 key 验证返回 401）。
+- ~~Dev.to 的真实发布~~ → 已验证：账号 `dlss` 上已有 2 篇已发布（2026-09-22 前）。遗留问题是**不能更新已发布内容**（代码只 `POST`）。
 - Postiz 排程实际发出（账号未连）。
 - 视频只到脚本层，没有成品视频。
 - `unified-llm-api` 的图像生成（`agenthub` 未确认可装）。
