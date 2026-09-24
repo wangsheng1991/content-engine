@@ -1,7 +1,7 @@
 slug: passport-photo
 title: "证件照规格表：每个数字都带着它出自哪句话"
 subtitle: "俄罗斯 3 × 4 与 35 × 45 两行规格，每个数字后面挂着来源原句。一个与另外三处矛盾的数字没有被删掉，留在表里写明为什么落选；只有单一来源的那一行，不上线。工具本身不联网 —— 照片不进任何服务器。"
-title_en: "A document photo spec table where every number carries the sentence it came from"
+title_en: "An ID photo spec table where every number carries the sentence it came from"
 subtitle_en: "Two verified Russian formats, each number carrying a verbatim quotation from its source. One conflicting figure was kept in the table instead of deleted, with the reason it lost. One row is deliberately not shipped, because only one page describes it. And the photo never leaves the browser."
 kind: practice
 date: 2026-09-24
@@ -15,7 +15,7 @@ summary: |
   另一种只被一页描述过的规格则干脆不上线：**一个来源不算证据。**
   工具本身不联网，照片用 canvas 在浏览器里裁完直接导出，服务器收不到。
 summary_en: |
-  Document photo specs are a pile of millimetre figures copied between government pages, studio
+  ID photo specs are a pile of millimetre figures copied between government pages, studio
   instructions and visa agencies. The rule here is single: every number is bound to the sentence it
   appeared in, and a number whose sentence cannot be read does not enter the table. That is how two
   Russian formats (3 × 4 and 35 × 45) were pinned down, re-checkable by a stranger months later.
@@ -52,11 +52,13 @@ links:
   - label: "在线使用（不上传，无需账号）"
     url: https://www.dlss5nvidia.com/tools/passport-photo
 platforms:
+  devto:
+    tags: [privacy, tools, webdev, image]
   bluesky:
     text: |
-      A document photo is the one image you should not have to upload to a website just to resize it.
+      Your ID photo is the one image you shouldn't have to upload to a website just to crop it.
 
-      Every spec number in ours carries the sentence it came from. One figure contradicted three others — it is still in the table, with the reason it lost.
+      Every number in our table carries the sentence it came from. One contradicted three others — it stays in, with the reason it lost.
   reddit:
     title: "I bound every number in a passport photo spec table to the sentence it came from — one conflicting figure stayed in with the reason it lost"
     hook: "Russian 3×4 and 35×45 formats as data rows: size, head height band, headroom band, DPI, and the verbatim quotation each figure came from. One source claimed an 11–13 mm head height against three others; it is still in the table with why it was rejected, so the next person re-reading that page finds the decision instead of repeating it. One format with a single source is not shipped at all."

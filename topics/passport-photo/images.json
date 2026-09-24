@@ -1,6 +1,6 @@
 {
   "topic": "passport-photo",
-  "generated_at": "2026-09-24T02:32:56Z",
+  "generated_at": "2026-09-24T02:35:08Z",
   "images": [
     {
       "id": "cover",
@@ -19,8 +19,8 @@
       "backend": "card",
       "model": "html+chrome",
       "size": "1200×630",
-      "bytes": 39711,
-      "sha256": "be06f1cf5edd07f8"
+      "bytes": 42427,
+      "sha256": "bd48ba0829985e95"
     }
   ]
 }
