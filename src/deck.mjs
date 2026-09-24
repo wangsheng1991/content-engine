@@ -9,7 +9,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { chromePath, screenshot } from './images.mjs';
+import { RENDER_TIMEOUT_MS, chromePath, screenshot } from './images.mjs';
 import { renderTemplate } from './template.mjs';
 import { copyDir, ensureDir, exists, isoNow, readText, sha256, writeOut } from './util.mjs';
 
@@ -45,12 +45,18 @@ export function buildDeck({ bin, input, title, outFile, log = () => {} }) {
 /**
  * Canvas sizes, in the units each destination actually wants: a projector-shaped 16:9 for a
  * pptx substitute and for video, 3:4 for a 小红书 carousel, 1:1 for a square feed.
+ *
+ * `root` is the px size everything else is measured in — one `rem` is one `root`. It travels with
+ * the canvas because the canvas says how far away the reader is: a 1600px landscape slide is a
+ * laptop, and a 1080px portrait one is a phone held at arm's length, where the same measure in
+ * characters would arrive well under the size a slide is ever read at. So the portrait canvas
+ * gets the larger root and pays for it with fewer characters per line.
  */
 export const DECK_ASPECTS = {
-  '16:9': { width: 1600, height: 900 },
-  '4:3': { width: 1440, height: 1080 },
-  '3:4': { width: 1080, height: 1440 },
-  '1:1': { width: 1080, height: 1080 },
+  '16:9': { width: 1600, height: 900, root: 16 },
+  '4:3': { width: 1440, height: 1080, root: 16 },
+  '3:4': { width: 1080, height: 1440, root: 17 },
+  '1:1': { width: 1080, height: 1080, root: 15 },
 };
 export const DEFAULT_ASPECT = '16:9';
 
@@ -137,9 +143,9 @@ export function deckDocument({ pages, size, css, templates, lang = 'zh-CN', titl
   });
 }
 
-/** One `rem` is one percent of the canvas width, which is what makes the sizes portable. */
-function baseSize({ width }) {
-  return Number((width / 100).toFixed(3));
+/** One `rem` is the canvas's own root size, which is what makes the rules hold at every size. */
+function baseSize(size) {
+  return size.root ?? Number((size.width / 100).toFixed(3));
 }
 
 export function loadDeckTemplates(templatesDir) {
@@ -160,7 +166,7 @@ export function loadDeckTemplates(templatesDir) {
  * print pipeline compiled in. Chromium as Playwright ships it does not, and hangs instead of
  * failing, which is why a deck run can end as a timeout rather than an error.
  */
-export function printToPdf({ chrome, htmlFile, outFile, width, height, timeoutMs = 45000 }) {
+export function printToPdf({ chrome, htmlFile, outFile, width, height, timeoutMs = RENDER_TIMEOUT_MS }) {
   return new Promise((resolve) => {
     // Same reason as the screenshot above: a pdf from an earlier run would be mistaken for this
     // one's, and the run would end with the previous deck.

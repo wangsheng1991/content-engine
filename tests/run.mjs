@@ -196,7 +196,7 @@ test('slides: the outline is read by the same parser that renders the deck', () 
 });
 
 test('deck: the aspect picks the canvas, and a cover is page zero', () => {
-  assert.deepEqual(deckSize('3:4'), { width: 1080, height: 1440 });
+  assert.deepEqual(deckSize('3:4'), { width: 1080, height: 1440, root: 17 });
   assert.deepEqual(deckSize(), DECK_ASPECTS[DEFAULT_ASPECT]);
   assert.throws(() => deckSize('16:10'), /unknown deck aspect/);
 
@@ -209,14 +209,15 @@ test('deck: the aspect picks the canvas, and a cover is page zero', () => {
   assert.match(pages[0].lead, /Lead\./);
 });
 
-test('deck: one rem is one percent of the canvas, and the fit script is in both documents', () => {
+test('deck: a portrait canvas gets the larger root, so a carousel is not a shrunken slide', () => {
   const templates = loadDeckTemplates(path.join(ROOT, 'templates'));
   const pages = deckPages(parseSlides('# D\n\n## S\n\n- b'));
   const wide = slideDocument({ page: pages[1], size: deckSize('16:9'), css: templates.css, templates });
   const tall = slideDocument({ page: pages[1], size: deckSize('3:4'), css: templates.css, templates });
   assert.match(wide, /html \{ font-size: 16px;/);
-  assert.match(tall, /html \{ font-size: 10.8px;/);
+  assert.match(tall, /html \{ font-size: 17px;/);
   assert.match(wide, /width: 1600px; height: 900px;/);
+  assert.match(tall, /width: 1080px; height: 1440px;/);
   assert.equal(count(wide, 'function fit(slide)'), 1, 'a slide that overflows is scaled down, not clipped');
   const whole = deckDocument({ pages, size: deckSize('16:9'), css: templates.css, templates, title: 'D' });
   assert.match(whole, /@page \{ size: 1600px 900px; margin: 0; \}/);

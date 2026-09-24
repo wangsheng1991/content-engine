@@ -295,6 +295,15 @@ export function coverCardHtml(job) {
 }
 
 /**
+ * How long one browser render may take before it is called a failure.
+ *
+ * Nine times out of ten the poll below returns in a second or two, so this only ever matters when
+ * the browser is genuinely slow — a cold Chrome on a fresh CI runner beat the old 45 seconds once,
+ * on a commit whose rerun passed, which is the shape of a timeout that is merely too tight.
+ */
+export const RENDER_TIMEOUT_MS = 90000;
+
+/**
  * Screenshot a local HTML file with Chrome.
  *
  * Chrome writes the PNG and then simply never exits — on macOS it sits there holding the display
@@ -303,7 +312,7 @@ export function coverCardHtml(job) {
  *
  * Exported because the deck renders one page per image the same way, from the same browser.
  */
-export function screenshot({ chrome, htmlFile, outFile, width, height, scale = 1, timeoutMs = 45000 }) {
+export function screenshot({ chrome, htmlFile, outFile, width, height, scale = 1, timeoutMs = RENDER_TIMEOUT_MS }) {
   return new Promise((resolve) => {
     // The completion signal is the output file settling, so a file left over from an earlier run
     // would satisfy it before Chrome has written anything — a re-render would silently keep the

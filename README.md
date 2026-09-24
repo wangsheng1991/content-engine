@@ -91,9 +91,11 @@ node bin/content.mjs deck ml-sharp --aspect 3:4      # 1080×1440, a 小红书 c
 
 A page with narration runs **as long as the voice does** (`say` reads it, ffprobe
 measures it, plus a 0.4 s breath); a page without one runs for `--seconds`
-(default 5). Sizes are in `rem` against a root that is one percent of the canvas
-width, so 16:9 and 3:4 come from one set of rules, and a slide written too full is
-scaled down to fit rather than spilling under its own footer.
+(default 5). The type is sized in `rem` against a root the aspect picks — 16px on
+a 1600px landscape canvas, 17px on a 1080×1440 portrait one, because a carousel is
+read on a phone and a slide is read on a laptop — so 16:9 and 3:4 come from one
+set of rules, and a slide written too full is scaled down to fit rather than
+spilling under its own footer.
 
 This step needs Chrome and — for video — ffmpeg, neither of which CI has, so like
 `content images` it runs locally and is not part of `content build`. The reasoning
