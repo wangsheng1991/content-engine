@@ -130,8 +130,9 @@ function relationships(items) {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${PACKAGE_REL_NS}">${body}</Relationships>`;
 }
 
+/** OOXML coordinates are whole EMU. A fitted slide multiplies by a fraction, so round at the edge. */
 function transform({ x, y, w, h }) {
-  return `<a:xfrm><a:off x="${x}" y="${y}"/><a:ext cx="${w}" cy="${h}"/></a:xfrm>`;
+  return `<a:xfrm><a:off x="${Math.round(x)}" y="${Math.round(y)}"/><a:ext cx="${Math.round(w)}" cy="${Math.round(h)}"/></a:xfrm>`;
 }
 
 function fill(color) {
@@ -232,9 +233,10 @@ function textShape(id, box, paragraphs, {
   placeholder = null,
 } = {}) {
   const ph = placeholder ? `<p:ph type="${placeholder.type}" idx="${placeholder.idx}"/>` : '';
+  const inset = Math.round(margin);
   return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${xml(name)}"/><p:cNvSpPr txBox="1"/><p:nvPr>${ph}</p:nvPr></p:nvSpPr>`
     + `${shapeProperties(box, { fillColor, lineColor, rounded })}`
-    + `<p:txBody><a:bodyPr wrap="square" anchor="${vertical}" lIns="${margin}" rIns="${margin}" tIns="${margin}" bIns="${margin}"/><a:lstStyle/>${paragraphs}</p:txBody></p:sp>`;
+    + `<p:txBody><a:bodyPr wrap="square" anchor="${vertical}" lIns="${inset}" rIns="${inset}" tIns="${inset}" bIns="${inset}"/><a:lstStyle/>${paragraphs}</p:txBody></p:sp>`;
 }
 
 function plainTextShape(id, box, text, style, options = {}) {

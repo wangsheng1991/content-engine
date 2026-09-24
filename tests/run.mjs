@@ -257,6 +257,12 @@ test('pptx: builtin writer emits an editable OOXML package and speaker notes', (
     assert.ok(files['[Content_Types].xml'] && files['ppt/presentation.xml']);
     assert.ok(Object.keys(files).some((n) => n.startsWith('ppt/notesSlides/notesSlide')));
     assert.match(files['ppt/slides/slide2.xml'], /The problem/);
+    // A fitted slide multiplies every length by a fraction; OOXML wants whole EMU back, and a
+    // validator or PowerPoint is the one that would otherwise say so.
+    const fractionalEmu = /(?:x|y|cx|cy|lIns|rIns|tIns|bIns)="[^"]*\.[^"]*"/;
+    Object.entries(files).filter(([name]) => name.endsWith('.xml')).forEach(([name, xml]) => {
+      assert.doesNotMatch(xml, fractionalEmu, `${name}: coordinates are whole EMU`);
+    });
     Object.entries(files).filter(([n]) => n.endsWith('.xml')).forEach(([, xml]) => assertXml(xml));
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
