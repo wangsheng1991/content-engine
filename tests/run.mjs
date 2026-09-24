@@ -1195,7 +1195,9 @@ test('images: dev.to is handed the English cover when one exists', () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test('images: a cover is sent to dev.to as cover_image, and a topic without one omits the field', () => {
+// `main_image`, not `cover_image`: the older name is still accepted by the API with a 201 and
+// stores nothing, which is how three articles went out with no cover at all.
+test('images: a cover is sent to dev.to as main_image, and a topic without one omits the field', () => {
   const withCover = composeArticle({
     slug: 'demo',
     source: parseYaml(IMAGE_SOURCE),
@@ -1203,14 +1205,15 @@ test('images: a cover is sent to dev.to as cover_image, and a topic without one 
     config: { site: { baseUrl: 'https://example.test' } },
     coverUrl: 'https://example.test/assets/demo/og.en.png',
   });
-  assert.equal(withCover.cover_image, 'https://example.test/assets/demo/og.en.png');
+  assert.equal(withCover.main_image, 'https://example.test/assets/demo/og.en.png');
   const without = composeArticle({
     slug: 'demo',
     source: parseYaml(IMAGE_SOURCE),
     markdown: '---\ntitle: x\n---\n\n# Body\n',
     config: { site: { baseUrl: 'https://example.test' } },
   });
-  assert.ok(!('cover_image' in without));
+  assert.ok(!('main_image' in without));
+  assert.ok(!('cover_image' in without), 'the deprecated field must not be sent alongside it');
 });
 
 if (chromePath()) {

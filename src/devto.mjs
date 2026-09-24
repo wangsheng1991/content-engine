@@ -157,7 +157,10 @@ export function composeArticle({ slug, source, markdown, config, coverUrl, engli
     ...(description ? { description } : {}),
     // Dev.to re-hosts the image off this absolute URL, so the site has to be deployed first —
     // which is the order `content publish` already uses: git push, then the platform call.
-    ...(coverUrl ? { cover_image: coverUrl } : {}),
+    // The field is `main_image`: `cover_image` is the name older documentation still carries, and
+    // the API accepts it without complaint and stores nothing, so three articles went out with no
+    // cover before the read-back below was taught to look at it.
+    ...(coverUrl ? { main_image: coverUrl } : {}),
     // `platforms.devto.tags` wins when present: a Chinese topic's own tags are not legal Dev.to
     // tags at all (lowercase ASCII only), so without an override they publish as an empty list.
     tags: devtoTags(source?.platforms?.devto?.tags ?? source?.tags ?? []),
@@ -178,11 +181,23 @@ export function coverUrlOf(topic, config) {
   return `${joinUrl(config?.site?.baseUrl ?? '', 'assets', topic.slug)}/${cover.rel}`;
 }
 
-/** Read the article back from the public API: a write that cannot be seen is not a publish. */
-function readBack(id, attempts = 5) {
+/**
+ * Read the article back from the public API: a write that cannot be seen is not a publish. The
+ * cover is read back for the same reason it is sent — the API took `cover_image` for months and
+ * stored nothing, and only looking at what came back makes that visible.
+ */
+function readBack(id, { coverExpected = false, attempts = 5 } = {}) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const { status, json } = curlJson(`${API}/articles/${id}`, { timeout: 30 });
-    if (status === 200 && json?.id === id) return { verified: true, url: json.url, canonical: json.canonical_url ?? null };
+    if (status === 200 && json?.id === id) {
+      return {
+        verified: true,
+        url: json.url,
+        canonical: json.canonical_url ?? null,
+        cover: Boolean(json.cover_image ?? json.main_image),
+        coverExpected,
+      };
+    }
     if (attempt < attempts) execFileSync('sleep', ['2']);
   }
   return { verified: false, reason: '公开接口还读不到这篇文章（可能只是索引慢）' };
@@ -220,7 +235,7 @@ export function devtoPublish({ root, config, manifest, slugs, apiKey, draft = fa
       log(`title:     ${article.title}`);
       log(`tags:      ${article.tags.join(', ') || '（无）'}`);
       log(`canonical: ${article.canonical_url}`);
-      if (article.cover_image) log(`cover:     ${article.cover_image}`);
+      if (article.main_image) log(`cover:     ${article.main_image}`);
       log(`published: ${article.published}`);
       log('─'.repeat(60));
       log(article.body_markdown.split('\n').slice(0, 12).join('\n'));
@@ -239,8 +254,11 @@ export function devtoPublish({ root, config, manifest, slugs, apiKey, draft = fa
       results.push({ slug, published: false, status });
       continue;
     }
-    const check = readBack(json.id);
+    const check = readBack(json.id, { coverExpected: Boolean(article.main_image) });
     log(check.verified ? `  ✓ 已发布并回读确认：${check.url}` : `  ! ${check.reason}`);
+    if (check.verified && check.coverExpected && !check.cover) {
+      log('  ! 封面没有落到文章上 —— 文章已发布，但 cover_image 回读为空；用 PUT /api/articles/:id 补，或检查字段名');
+    }
     results.push({ slug, published: true, id: json.id, ...check });
   }
 

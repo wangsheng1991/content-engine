@@ -119,7 +119,7 @@ prompt and its hash, the size that came back, and the file's own hash:
 
 Covers reach the platforms too: the Chinese card is the site's `og:image`, an
 English card is rendered whenever `platforms.devto.title` exists, and Dev.to
-receives the English one as `cover_image` (it re-hosts the file, so the site has
+receives the English one as `main_image` (it re-hosts the file, so the site has
 to be deployed first — which is the order `content publish` already uses). The
 `og:image:width` / `height` pair is read out of the cover file itself, because a
 model backend may answer a pixel or two off the 1200×630 that was requested —

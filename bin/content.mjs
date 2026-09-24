@@ -76,7 +76,7 @@ const HELP = `content — GitHub-first content engine
   content publish --devto <slug> 发长文：只需一个 DEVTO_API_KEY（账号设置里自己生成，无审核）。
   正文取 dist 里编译好的 blog/<slug>.md（含证据与已带 ?ref= 的 CTA），用 canonical_url 指回
   自己的站点，搜索引擎的功劳记在站点上而不是复制品上。加 --draft 先存草稿，先加 --dry-run 看标题标签。
-  有封面时一并作为 cover_image 发过去（优先英文版封面），Dev.to 会把它转存到自己的 CDN，
+  有封面时一并作为 main_image 发过去（优先英文版封面），Dev.to 会把它转存到自己的 CDN，
   所以站点要先部署好再发这一条。
 
   content lint 是发布前的文案闸门，管的是编译器管不了的那部分：标题、副标题、摘要、key_facts、
