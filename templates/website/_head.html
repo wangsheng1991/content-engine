@@ -143,6 +143,10 @@ footer .wrap { padding: 0; max-width: 72rem; }
 .links { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
+<!-- Cloudflare Web Analytics. This site is on GitHub Pages, which is not behind Cloudflare, so the
+     beacon cannot be injected automatically and has to be served from here. The token is a public
+     site identifier, not a secret: it ships in every visitor's HTML by design. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "bb88022bb8c843d39d06efdfeeecc9fa"}'></script>
 </head>
 <body>
 <header class="nav">

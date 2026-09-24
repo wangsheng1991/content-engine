@@ -2,6 +2,15 @@
 
 日期：2026-09-23 ｜ 上游：`REQUIREMENTS.md` §六 阶段 0、`LANDSCAPE.md` §3.2
 
+> **执行结果（2026-09-24）**
+>
+> - **任务 B（反馈脚本）✅ 完成**：`src/feedback.mjs` + `content feedback`，一个 `(topic, channel)` 一个文件，落在被忽略的 `data/feedback/`。测试 103 项全过。
+> - **任务 A（Cloudflare 统计）✅ 三个站点已建**：
+>   - `dlss5nvidia.com`（橙云）—— 站点 `227cfc84…`，`auto_install` 已启用，**线上已确认注入**，无需改任何代码。
+>   - `houseplusplus.com`（灰云）—— 站点 `71a2397a…`，**必须把 beacon 贴进产品源码**，待定。
+>   - 内容站 `wangsheng1991.github.io` —— 站点 `38a1a7a4…`，beacon 已进 `templates/website/_head.html`。
+> - **踩到的两个坑**（下次直接用）：① 创建站点时，橙云要传 `zone_tag`，灰云要传 `host` —— 只传 `host` + `auto_install` 会报 `10022 autoInstallInvalid`，而不是权限错；② 验证注入时 curl 必须带浏览器式的 `Accept: text/html` 和 `Sec-Fetch-Mode: navigate`，否则 Cloudflare 不注入，会误判成「没生效」。
+
 **这份是交给执行者（人或 AI）干活的说明书。** 两件事，都不涉及任何发布动作、不改产品代码、不花钱。
 做完之后，系统第一次能回答「发出去的东西有没有人看」。
 
