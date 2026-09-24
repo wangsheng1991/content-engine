@@ -48,9 +48,8 @@ node tests/run.mjs                         # the test suite (npm test)
 ```
 
 There are **no npm dependencies** — everything (YAML subset parser, markdown
-renderer, template engine, static server, cover-image cards, the deck) is in
-`src/` against Node's standard library. The external tools are `pandoc`, used when
-present to turn `deck/<slug>/slides.md` into a real `.pptx`, a local
+renderer, template engine, static server, cover-image cards, and editable OOXML deck writer) is in
+`src/` against Node's standard library. The external tools are a local
 **Chrome/Chromium**, used by the default image backend and by `content deck`, and
 **ffmpeg**, used by `content deck --video`; without any of them the skip is
 reported in `dist/manifest.json` and everything else still builds.
@@ -72,7 +71,7 @@ Spoken over this slide, not shown on it.
 - On the slide.
 ```
 
-`content build` turns it into an editable `.pptx` through pandoc — the `::: notes`
+`content build` turns it into an editable `.pptx` through the built-in OOXML writer — the `::: notes`
 div becomes PowerPoint speaker notes. `content deck` renders the same file with
 the local Chrome instead:
 
@@ -326,7 +325,8 @@ src/images.mjs         covers and illustrations: card / cloudflare / qwen / comm
 src/typography.mjs     中西文间距与全角标点，构建期作用于中文正文
 src/lint.mjs           the copywriting gate (sparanoid/chinese-copywriting-guidelines)
 src/i18n.mjs           the English routes and the chrome strings for each language
-src/deck.mjs           the deck: pandoc → .pptx, Chrome → html/png/pdf
+src/deck.mjs           the deck: Chrome → html/png/pdf
+src/pptx.mjs           the dependency-free editable OOXML .pptx writer
 src/slides.mjs         slides.md → slides, with `::: notes` as narration
 src/video.mjs          the timeline, `say` narration and the ffmpeg encode
 src/publish.mjs        tier report + optional git commit/push

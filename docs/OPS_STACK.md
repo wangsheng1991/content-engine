@@ -46,7 +46,7 @@
 | **质量闸门** | **`content verify`（本仓库，本次新增）** | 把"高质量"从口号变成能被 CI 拦下来的检查 | ✅ 12 项测试全过 |
 | 站点/博客/RSS | `content build` → GitHub Pages | 推 main 即上线，已实测 | ✅ 线上 200 |
 | 技术资产 | GitHub 仓库（自动）；Hugging Face（`content publish --hf`） | 飞轮的锚点，downloads/likes 是可验证指标 | ✅ 已验证 |
-| PPT | pandoc → `deck.pptx` | 本机有 pandoc；输出过 `unzip -t` 校验 | ✅ 已验证 |
+| PPT | 仓库内置 OOXML 写出器（`src/pptx.mjs`） → `deck.pptx` | 零依赖，真文本对象不是图片；`unzip -t`、`xmllint`、Quick Look 十页逐页都过了 | ✅ 已验证 |
 | 视频 | `video.yaml` → storyboard.json + ffmpeg | 先只到脚本与分镜，别假装能一键出片 | ✅ 到脚本 |
 | 海外社媒排程 | RenVi：`ops/n8n-postiz`（n8n + Postiz，docker） | 走官方 API 排程 Pinterest/IG/TikTok/X/YouTube；已建好 | ⚠️ 待连账号（选型实测见 `docs/SOCIAL_STACK.md`） |
 | 定时/触发 | `penguin schedule` | 本机 CLI 直接可加定时任务 | ✅ 可用 |
@@ -64,7 +64,7 @@
 | 改代码/排查 | `software-engineering` | content-engine 的改动要走它自己的测试 |
 | 页面视觉 | `web-design` | 模板已遵循该规范；新增工具页必须继续遵循 |
 | 取证补充 | `firecrawl` | 有 key 后替代手写抓取 |
-| 演示稿 | `bento-slides` | 需要 HTML 演示稿时用；pptx 仍归 pandoc |
+| 演示稿 | `bento-slides` | 需要 HTML 演示稿时用；pptx 归仓库内置写出器 |
 | 复盘数据 | `data-analysis` | 每周按 `content_id` 算转化 |
 | 定时与多任务 | `penguin-orchestration` | 批量跑主题、定时触发、跨会话编排 |
 | 图像/语音生成 | `unified-llm-api` | 依赖 `@prismshadow/agenthub`，**需先确认能装**（npm 目前坏） |
@@ -141,7 +141,7 @@ content publish --devto <slug> --dry-run  # 只看标题/标签/canonical
 ## 7. 已验证 / 未验证
 
 **已验证（实测）**
-- `content build` 编译全部主题；`deck.pptx` 由 pandoc 生成。
+- `content build` 编译全部主题；`deck.pptx` 由仓库内置写出器生成（不再需要 pandoc）。
 - `content verify` 通过 12 项测试（含"引文对不上源"、"源取不到不算通过"、"缺 cta 拦下"）；全套测试 **41 项全过**（2026-09-22）。
 - Bluesky 真实发布一条并匿名回读确认（256/300 字符，facet 字节偏移正确）。
 - `content verify --online` 对 ml-sharp **10/10 条 claim 回源逐字命中**。

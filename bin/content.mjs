@@ -113,8 +113,8 @@ const HELP = `content — GitHub-first content engine
   dist/deck/<slug>/ 里的 deck.html（一份能翻能打印的整页文档）、slides/NN.png（每页一张，
   直接就是小红书轮播）和 deck.pdf。加 --video 再出一支 deck.mp4：每页停留 --seconds 秒
   （默认 5）；slides.md 里写了 ::: notes 的页，用 macOS 的 say 把那段话读出来当旁白，
-  停留多久由读出来多长决定 —— 所以先写旁白，视频长度自己就对了。旁白本来也是 pandoc
-  给 pptx 的演讲者备注，一份源同时喂三个出口。
+  停留多久由读出来多长决定 —— 所以先写旁白，视频长度自己就对了。旁白也会写入内置 pptx
+  的演讲者备注，一份源同时喂三个出口。
   --aspect 选画布：${deckAspects().join(' / ')}（默认 ${DEFAULT_ASPECT}）。--voice 指定音色，
   默认 ${DEFAULT_VOICE ?? '（本机没有 say，只有静音视频）'}。它需要本机 Chrome（出图与打印）和 ffmpeg（合成），
   CI 上没有，所以它和 content images 一样，不进 build，是本地跑的一步。

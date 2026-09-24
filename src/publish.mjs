@@ -26,9 +26,6 @@ export function publishReport({ manifest, log = console.log }) {
     const platform = PLATFORMS.find((p) => artifact.kind === `draft:${p.id}`);
     log(`  → ${artifact.path}  [${artifact.kind}]${platform ? ` — ${platform.approval}` : ''}`);
   }
-  if (manifest.deck_engine === null && tierB.some((a) => a.kind === 'deck')) {
-    log('  ! deck.pptx 未生成：本机没有 pandoc，只有 slides.md/outline.json');
-  }
   for (const note of manifest.notes ?? []) log(`  · ${note}`);
   log('');
   log('Tier A 的产物可直接部署：GitHub Actions 把 dist/site/ 发布为 GitHub Pages；');

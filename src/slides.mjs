@@ -9,7 +9,7 @@
 //
 // Every `##` opens a slide; a `::: notes` div inside one is spoken rather than shown, so the
 // narration lives next to the slide it belongs to instead of in a second file that drifts.
-// The same `:::  notes ` div is what pandoc turns into PowerPoint speaker notes, so the pptx,
+// The same `::: notes` div is what the PPTX writer turns into PowerPoint speaker notes, so the pptx,
 // the html deck and the video all come from this one file.
 import { renderMarkdown } from './markdown.mjs';
 

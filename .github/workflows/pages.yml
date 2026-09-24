@@ -26,8 +26,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Install pandoc (optional — only used for deck.pptx)
-        run: command -v pandoc || (sudo apt-get update -qq && sudo apt-get install -y pandoc)
       - name: Compile every topic
         run: node bin/content.mjs build --all
       - name: Run the test suite

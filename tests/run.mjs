@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 import { build, loadConfig } from '../src/build.mjs';
@@ -21,6 +22,7 @@ import {
   slideDocument,
 } from '../src/deck.mjs';
 import { hasNarration, parseSlides, slideOutline } from '../src/slides.mjs';
+import { buildPptx } from '../src/pptx.mjs';
 import {
   DEFAULT_SECONDS,
   planTimeline,
@@ -121,6 +123,41 @@ function count(haystack, needle) {
   return String(haystack).split(needle).length - 1;
 }
 
+// The pptx tests read the package back the way a reader would: every entry carries its own name and
+// bytes in the local file header, so a page of parsing is enough and no unzip binary is needed.
+function readZip(file) {
+  const buf = fs.readFileSync(file);
+  const out = {};
+  for (let at = 0; at < buf.length - 4;) {
+    if (buf.readUInt32LE(at) !== 0x04034b50) { at += 1; continue; }
+    const method = buf.readUInt16LE(at + 8);
+    const size = buf.readUInt32LE(at + 18);
+    const nameLength = buf.readUInt16LE(at + 26);
+    const extraLength = buf.readUInt16LE(at + 28);
+    const name = buf.subarray(at + 30, at + 30 + nameLength).toString();
+    const start = at + 30 + nameLength + extraLength;
+    const data = buf.subarray(start, start + size);
+    out[name] = (method === 8 ? zlib.inflateRawSync(data) : data).toString();
+    at = start + size;
+  }
+  return out;
+}
+
+// Hand-built XML breaks by leaving a tag open or closing it in the wrong order; nothing else in the
+// suite would catch that, and PowerPoint answers it with "needs repair".
+function assertXml(xml) {
+  const tags = xml.replace(/<!--[^]*?-->/g, '').match(/<\/?[A-Za-z_:][^>]*>/g) ?? [];
+  const open = [];
+  for (const tag of tags) {
+    if (/^<\//.test(tag)) {
+      assert.equal(open.pop(), tag.slice(2, -1).trim(), `XML close tag mismatch: ${tag}`);
+    } else if (!/\/\s*>$/.test(tag) && !/^<\?/.test(tag)) {
+      open.push(tag.slice(1, -1).trim().split(/\s+/)[0]);
+    }
+  }
+  assert.equal(open.length, 0, 'XML has unclosed tags');
+}
+
 // Async cases are collected and awaited before the summary: a rejected promise that nobody waits
 // for would otherwise report as a pass and then crash the process after the totals are printed.
 const pending = [];
@@ -207,6 +244,35 @@ test('deck: the aspect picks the canvas, and a cover is page zero', () => {
   assert.equal(pages[0].heading_tag, 'h1');
   assert.equal(pages[1].counter, '1 / 1');
   assert.match(pages[0].lead, /Lead\./);
+});
+
+test('pptx: builtin writer emits an editable OOXML package and speaker notes', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptx-test-')); const out = path.join(dir, 'deck.pptx');
+  try {
+    const source = fs.readFileSync(path.join(ROOT, 'topics/ml-sharp/slides.md'), 'utf8');
+    const result = buildPptx({ source, outFile: out, title: 'SHARP', slug: 'ml-sharp', siteName: 'AI Research Notes' });
+    const files = readZip(out); const slideNames = Object.keys(files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n));
+    assert.equal(result.pages, parseSlides(source).slides.length + 1);
+    assert.equal(slideNames.length, result.pages);
+    assert.ok(files['[Content_Types].xml'] && files['ppt/presentation.xml']);
+    assert.ok(Object.keys(files).some((n) => n.startsWith('ppt/notesSlides/notesSlide')));
+    assert.match(files['ppt/slides/slide2.xml'], /The problem/);
+    Object.entries(files).filter(([n]) => n.endsWith('.xml')).forEach(([, xml]) => assertXml(xml));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('pptx: wrapped bullets reserve the measured height before the next shape', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pptx-wrap-test-')); const out = path.join(dir, 'deck.pptx');
+  try {
+    const source = '# Deck\n\nLead.\n\n## Wrapped\n\n- This deliberately long bullet contains enough ASCII words to wrap across multiple lines before the next item.\n- Following item.';
+    buildPptx({ source, outFile: out, title: 'WRAP', slug: 'wrap', siteName: 'AI Notes' });
+    const slide = readZip(out)['ppt/slides/slide2.xml'];
+    const shapes = [...slide.matchAll(/<p:sp>[\s\S]*?<a:off x="900000" y="(\d+)"\/><a:ext cx="10392000" cy="(\d+)"\/>[\s\S]*?<a:t>([^<]*)<\/a:t>[\s\S]*?<\/p:sp>/g)];
+    const first = shapes.find((match) => match[3].includes('This deliberately long bullet'));
+    const second = shapes.find((match) => match[3].includes('Following item'));
+    assert.ok(first && second, 'both bullet shapes are present');
+    assert.ok(Number(second[1]) >= Number(first[1]) + Number(first[2]), 'the following bullet starts after the wrapped bullet box');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('deck: a portrait canvas gets the larger root, so a carousel is not a shrunken slide', () => {

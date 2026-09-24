@@ -1,7 +1,7 @@
 # 做视频与做 PPT：一次调研，和它落在本仓库里的结果
 
 写这份文档的原因：这套引擎能把一个主题编译成网站、长文、RSS、GitHub README 和平台草稿，但
-「演示」这一格一直是空的。`slides.md` 只有 pandoc 一条出口，`video.yaml` 只写出
+「演示」这一格一直是空的。`slides.md` 原先只有一条可编辑出口，`video.yaml` 只写出
 `storyboard.json` 和 `script.md`，而没有人拿着这两份文件去录视频。所以先看别人怎么做，再决定
 这里做什么、不做什么。
 
@@ -62,7 +62,7 @@ Tingting（zh_CN）和 Mei-Jia（zh_TW），可以离线合成旁白并测出真
 ```
 topics/<slug>/slides.md
         │
-        ├── content build ──→ deck/<slug>/slides.md · outline.json · deck.pptx（pandoc，可编辑）
+        ├── content build ──→ deck/<slug>/slides.md · outline.json · deck.pptx（内置 OOXML，可编辑）
         │
         └── content deck ───→ deck/<slug>/deck.html   一份能翻、能分享、能打印的文档
                               deck/<slug>/slides/NN.png  每页一张（小红书轮播）
@@ -77,12 +77,12 @@ topics/<slug>/slides.md
    尺寸全用 rem，rem 的大小由画布决定：1600px 横版是 16px，1080×1440 竖版是 17px —— 轮播图在
    手机上看，幻灯片在电脑上看，同一个字号在两种距离上不是同一个字号），所以 16:9 和 3:4 不会各长
    歪一套。
-3. **图片式是刻意的。** 上面 Marp 的例子说明这个品类接受「每页一张图」。要可编辑的 pptx，pandoc
-   那条老路还在，两个出口各管一件事。
+3. **两种 deck 出口。** HTML/PDF/PNG 适合分发；`content build` 通过仓库内置的零依赖 OOXML
+   写出真正可编辑的 `.pptx`，两个出口各管一件事。
 
 ## 四、旁白就是演讲者备注
 
-pandoc 会把 `::: notes` 的 div 放进 pptx 的演讲者备注。同一段文字，`content deck --video --voice`
+内置写出器会把 `::: notes` 的 div 放进 pptx 的演讲者备注。同一段文字，`content deck --video --voice`
 时用 `say` 读出来当音轨，**页面停留多久由读出来多长决定**（再加 0.4 秒换气），不是猜一个秒数。
 于是「先写旁白」变成一件有回报的事：视频长度自己就对了，而且 pptx 里也顺手有了备注。
 
@@ -91,7 +91,7 @@ pandoc 会把 `::: notes` 的 div 放进 pptx 的演讲者备注。同一段文�
 ## 五、没做的，和为什么
 
 - **不接 SaaS 转视频**：产物进不了 git，重跑不了。
-- **不引 PptxGenJS / Marp**：会破坏零依赖这个前提，收益只有「可编辑」；那个出口 pandoc 已经有了。
+- **不引 PptxGenJS / Marp**：会破坏零依赖这个前提；可编辑出口由仓库自己的最小 OOXML 写出器负责。
 - **不做数字人 / TTS 云服务**：本机 `say` 够用，且离线、可重跑。要更好的音色时，`--voice` 换个
   音色名即可，接口已经在那儿了。
 - **不做自动配乐、转场、字幕**：现在没有证据说明需要它们；轮播图 + 旁白已经能覆盖

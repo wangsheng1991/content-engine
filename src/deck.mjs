@@ -1,44 +1,11 @@
-// The deck has two engines and they answer different questions.
-//
-//   pandoc      one editable .pptx, for the person who wants to rearrange it in PowerPoint.
-//   html+chrome the html deck, one png per page and a pdf — which is what a carousel, a pdf
-//               handout and the frames of a video actually need, with no new dependency.
-//
-// Both read the same slides.md, so a deck that is right in one is right in the other.
-import { execFileSync, spawn } from 'node:child_process';
+// The HTML/Chrome deck is the visual export; src/pptx.mjs supplies the editable OOXML export.
+import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { RENDER_TIMEOUT_MS, chromePath, screenshot } from './images.mjs';
 import { renderTemplate } from './template.mjs';
 import { copyDir, ensureDir, exists, isoNow, readText, sha256, writeOut } from './util.mjs';
-
-export function pandocPath() {
-  try {
-    execFileSync('pandoc', ['--version'], { stdio: 'ignore' });
-    return 'pandoc';
-  } catch {
-    return null;
-  }
-}
-
-/** Convert an already-compiled slides.md into a real .pptx via pandoc. */
-export function buildDeck({ bin, input, title, outFile, log = () => {} }) {
-  if (!bin) return { built: false, reason: 'pandoc not installed' };
-  if (!exists(input)) return { built: false, reason: `deck source missing: ${input}` };
-  ensureDir(path.dirname(outFile));
-  try {
-    execFileSync(
-      bin,
-      [input, '-o', outFile, '-f', 'markdown', '-t', 'pptx', '--slide-level=2', '--metadata', `title=${title}`],
-      { stdio: ['ignore', 'ignore', 'pipe'] },
-    );
-    log(`deck: ${outFile}`);
-    return { built: true, file: outFile };
-  } catch (error) {
-    return { built: false, reason: String(error.stderr || error.message).trim().slice(0, 400) };
-  }
-}
 
 // --- the html deck ----------------------------------------------------------
 
@@ -348,4 +315,3 @@ export async function renderDeck({
 
   return { ok: rendered.length > 0, pages: rendered, size, files, notes };
 }
-

@@ -1,9 +1,9 @@
 // The compiler: every artifact in `dist/` is produced from `topics/<slug>/` here.
-// No network, no npm dependencies — only Node's standard library (plus pandoc for the deck).
+// No network, no npm dependencies — only Node's standard library.
 import path from 'node:path';
 import fs from 'node:fs';
 import { ARTIFACT_TIERS, PLATFORMS } from './platforms.mjs';
-import { buildDeck, pandocPath } from './deck.mjs';
+import { buildPptx } from './pptx.mjs';
 // One parser for the deck: outline.json and the rendered deck come from the same reading of
 // slides.md, so a slide that renders cannot be a slide the outline has never heard of.
 import { slideOutline } from './slides.mjs';
@@ -63,7 +63,6 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
   if (missing.length) throw new Error(`unknown topic(s): ${missing.join(', ')}`);
   if (selected.length === 0) throw new Error(`no topics found under ${config.paths.topics}/`);
 
-  const pandoc = siteOnly ? null : pandocPath();
   const artifacts = [];
   const indexTopics = [];
   const englishTopics = [];
@@ -199,12 +198,12 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
           source: `${slug}/slides.md`,
         });
         const pptx = path.join(ctx.out, `deck/${slug}/deck.pptx`);
-        const result = buildDeck({
-          bin: pandoc,
-          input: path.join(ctx.out, `deck/${slug}/slides.md`),
+        const result = siteOnly ? { built: false, reason: 'site-only' } : buildPptx({
+          source: topic.slides,
           title: view.topic.title,
+          slug,
+          siteName: ctx.config.site.name,
           outFile: pptx,
-          log,
         });
         if (result.built) {
           const artifact = {
@@ -214,7 +213,7 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
             slug,
             bytes: byteSize(pptx),
             sha256: '',
-            source: `${slug}/slides.md via pandoc`,
+            source: `${slug}/slides.md via builtin`,
           };
           topicArtifacts.push(artifact);
           artifacts.push(artifact);
@@ -315,7 +314,7 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
     generated_at: generatedAt,
     base_url: ctx.baseUrl,
     site_only: siteOnly,
-    deck_engine: pandoc ? 'pandoc' : null,
+    deck_engine: 'builtin',
     topics: topics.map(({ slug, title, date, kind, artifacts: list }) => ({
       slug,
       title,
