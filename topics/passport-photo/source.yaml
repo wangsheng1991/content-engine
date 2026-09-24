@@ -1,0 +1,69 @@
+slug: passport-photo
+title: "证件照规格表：每个数字都带着它出自哪句话"
+subtitle: "俄罗斯 3 × 4 与 35 × 45 两行规格，每个数字后面挂着来源原句。一个与另外三处矛盾的数字没有被删掉，留在表里写明为什么落选；只有单一来源的那一行，不上线。工具本身不联网 —— 照片不进任何服务器。"
+title_en: "A document photo spec table where every number carries the sentence it came from"
+subtitle_en: "Two verified Russian formats, each number carrying a verbatim quotation from its source. One conflicting figure was kept in the table instead of deleted, with the reason it lost. One row is deliberately not shipped, because only one page describes it. And the photo never leaves the browser."
+kind: practice
+date: 2026-09-24
+updated: 2026-09-24
+status: published
+summary: |
+  办证照片的规格是一堆毫米数字，散在政府页面、照相馆说明和签证代办站之间互相抄。
+  这份做法的核心只有一条：每个数字都必须和它出现的那句话绑在一起，读不到原句的数字不进表。
+  俄罗斯两行最常用的规格（3 × 4 与 35 × 45）由此定下来，每个数字都能被陌生人重新核一遍。
+  一个来源把头部高度写成 11–13 mm，与另外三处矛盾 —— 它没有被删掉，而是留在表里写清为什么落选。
+  另一种只被一页描述过的规格则干脆不上线：**一个来源不算证据。**
+  工具本身不联网，照片用 canvas 在浏览器里裁完直接导出，服务器收不到。
+summary_en: |
+  Document photo specs are a pile of millimetre figures copied between government pages, studio
+  instructions and visa agencies. The rule here is single: every number is bound to the sentence it
+  appeared in, and a number whose sentence cannot be read does not enter the table. That is how two
+  Russian formats (3 × 4 and 35 × 45) were pinned down, re-checkable by a stranger months later.
+  One source put the head height at 11–13 mm against three others — it was kept in the table with the
+  reason it lost rather than quietly deleted. Another format described by exactly one page is not
+  shipped at all: one source is not evidence. The photo itself never leaves the browser.
+tags: [证件照, 规格核对, 证据, 隐私, 浏览器端]
+hashtags: [证件照, фото3на4, 规格核对, 隐私优先, 浏览器端处理]
+canonical:
+  tool: https://www.dlss5nvidia.com/tools/passport-photo
+  tool_ru: https://www.dlss5nvidia.com/tools/passport-photo/35x45-ru
+key_facts:
+  - label: 表里的一行是什么
+    value: "一个证件规格 = 尺寸(mm) + 头部高度区间 + 头顶留白区间 + 背景色 + 最低 DPI + 可排版纸张 + 状态 + 来源原句"
+  - label: 俄罗斯 3 × 4 cm
+    value: "30 × 40 mm，头高 26 mm，头顶留白 2–4 mm，白底，≥ 600 dpi"
+  - label: 俄罗斯护照 35 × 45 mm
+    value: "35 × 45 mm，头高 32–36 mm（占高度 70–80%），头顶留白 4–6 mm，白底，≥ 300 dpi"
+  - label: 被否决的数字
+    value: "有来源把 3 × 4 的头高写成 11–13 mm —— 与另外三处矛盾，否决后仍留在表里并写明理由"
+  - label: 不上线的那一行
+    value: "新版申请表用的另一种 35 × 45（头高 25–30 mm）只有一个来源，状态标记为 single-source，不进线上页面"
+  - label: 照片去哪了
+    value: "哪都没去 —— FileReader 进 canvas，toBlob 直接下载，页面里没有一处上传"
+links:
+  - label: "俄罗斯 3 × 4 规格来源（photo-visa.online）"
+    url: https://photo-visa.online/s/foto-na-3-na-4-onlayn
+  - label: "俄罗斯证件照规格汇总（39mm.ru）"
+    url: https://39mm.ru/requirement.html
+  - label: "护照照留白区间来源（pasporta.org）"
+    url: https://pasporta.org/zagranpasport/foto-na-zagranpasport/
+  - label: "护照照头部比例来源（visa-guru.ru）"
+    url: https://visa-guru.ru/blog/zagranpassport/foto-na-zagranpasport
+  - label: "在线使用（不上传，无需账号）"
+    url: https://www.dlss5nvidia.com/tools/passport-photo
+platforms:
+  bluesky:
+    text: |
+      A document photo is the one image you should not have to upload to a website just to resize it.
+
+      Every spec number in ours carries the sentence it came from. One figure contradicted three others — it is still in the table, with the reason it lost.
+  reddit:
+    title: "I bound every number in a passport photo spec table to the sentence it came from — one conflicting figure stayed in with the reason it lost"
+    hook: "Russian 3×4 and 35×45 formats as data rows: size, head height band, headroom band, DPI, and the verbatim quotation each figure came from. One source claimed an 11–13 mm head height against three others; it is still in the table with why it was rejected, so the next person re-reading that page finds the decision instead of repeating it. One format with a single source is not shipped at all."
+  xiaohongshu:
+    title: "证件照规格表：每个数字都带着它出自哪句话📷"
+    hook: "俄罗斯 3×4 和 35×45 两行规格，每个毫米数后面挂着来源原句，陌生人也能重核一遍。有一个来源把头部写成 11–13 mm，和另外三处矛盾——它没被删掉，留在表里写清了为什么落选。"
+  x:
+    title: "Every number in our passport photo spec table carries the sentence it came from. The one that contradicted three others is still in the table — with the reason it lost."
+  zhihu:
+    title: "证件照的规格数字到底该信谁？我们把每个数字和它的来源原句绑在了一起"

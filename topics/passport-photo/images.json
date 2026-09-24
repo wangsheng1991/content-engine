@@ -1,0 +1,26 @@
+{
+  "topic": "passport-photo",
+  "generated_at": "2026-09-24T02:32:56Z",
+  "images": [
+    {
+      "id": "cover",
+      "file": "assets/og.png",
+      "kind": "cover",
+      "backend": "card",
+      "model": "html+chrome",
+      "size": "1200×630",
+      "bytes": 80867,
+      "sha256": "ca6444662a17f67e"
+    },
+    {
+      "id": "cover-en",
+      "file": "assets/og.en.png",
+      "kind": "cover",
+      "backend": "card",
+      "model": "html+chrome",
+      "size": "1200×630",
+      "bytes": 39711,
+      "sha256": "be06f1cf5edd07f8"
+    }
+  ]
+}

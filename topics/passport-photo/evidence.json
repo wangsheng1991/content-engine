@@ -1,0 +1,83 @@
+{
+  "topic": "passport-photo",
+  "checked_at": "2026-09-24",
+  "claims": [
+    {
+      "id": "ru-3x4-size-and-dpi",
+      "claim": "俄罗斯 3 × 4 cm 证件照的成片尺寸是 30 × 40 mm，分辨率不低于 600 dpi，背景必须纯白、无杂物无阴影。",
+      "source": "https://photo-visa.online/s/foto-na-3-na-4-onlayn",
+      "quote": "необходимо фото размером 30.00mm × 40.00mm с разрешением не менее 600 dpi . Фон должен быть белый , без посторонних предметов и теней.",
+      "verified": true
+    },
+    {
+      "id": "ru-3x4-head-height",
+      "claim": "3 × 4 规格要求头部（至发顶）高 26 mm，照片顶边到头发上沿留 3 mm。",
+      "source": "https://photo-visa.online/s/foto-na-3-na-4-onlayn",
+      "quote": "Высота головы (до макушки волос) : 26.00mm Расстояние от верхней части фотографии до верхней части волос : 3.00mm",
+      "verified": true
+    },
+    {
+      "id": "ru-3x4-headroom-band",
+      "claim": "第二个来源把 3 × 4 的头顶留白写成 2–4 mm；3 mm 落在该区间内，因此两处并不矛盾。",
+      "source": "https://39mm.ru/requirement.html",
+      "quote": "Поле над головой: 2-4 мм.",
+      "verified": true
+    },
+    {
+      "id": "ru-3x4-purposes",
+      "claim": "3 × 4 cm 是医疗手册、学生证、通行证、兵役证、工作许可等一批证件的统一规格。",
+      "source": "https://39mm.ru/requirement.html",
+      "quote": "Фото на мед.книжку, студ.билет, пенсионное удостоверение, разрешение на работу, временную регистрацию, зачетные книжки, пропуски, удостоверения, анкеты, военный билет (типовая 3х4 см)",
+      "verified": true
+    },
+    {
+      "id": "ru-3x4-conflict-rejected",
+      "claim": "同一份资料里另有一处把 3 × 4 的头部高度写成 11–13 mm，与其余三处矛盾，被否决。",
+      "source": "https://39mm.ru/requirement.html",
+      "quote": "Размер: 30х40 мм. Цветность: цветная или черно-белая (по требованию) Размер головы: 11-13 мм. в высоту Поле над головой: 2-4 мм.",
+      "verified": true
+    },
+    {
+      "id": "ru-35x45-head-proportion",
+      "claim": "俄罗斯 35 × 45 mm 护照照要求头部占照片高度的 70–80%，即高 32–36 mm、宽 18–25 mm。",
+      "source": "https://39mm.ru/requirement.html",
+      "quote": "Размер головы: не менее 70-80% от общего размера фотографии по высоте. То есть изображение головы в длину 32-36 мм., в ширину 18-25 мм.",
+      "verified": true
+    },
+    {
+      "id": "ru-35x45-headroom-5",
+      "claim": "同一来源把 35 × 45 的头顶留白写成 5 mm，允许 1 mm 误差。",
+      "source": "https://39mm.ru/requirement.html",
+      "quote": "Поле над головой: 5 мм, разрешена погрешность 1 мм.",
+      "verified": true
+    },
+    {
+      "id": "ru-35x45-headroom-band",
+      "claim": "另一个来源把 35 × 45 的头顶留白写成 4–6 mm，与 5 mm ± 1 mm 完全一致。",
+      "source": "https://pasporta.org/zagranpasport/foto-na-zagranpasport/",
+      "quote": "Над верхней частью головы должна оставаться свободная область высотой от 4 до 6 мм.",
+      "verified": true
+    },
+    {
+      "id": "ru-35x45-size",
+      "claim": "35 × 45 mm 这一尺寸本身由第二个来源独立确认。",
+      "source": "https://pasporta.org/zagranpasport/foto-na-zagranpasport/",
+      "quote": "необходим снимок 35 на 45 мм",
+      "verified": true
+    },
+    {
+      "id": "ru-35x45-headroom-floor",
+      "claim": "第三个来源只说头顶留白不小于 2 mm，这被当作下限而非目标值——4–6 mm 的区间本身满足「不小于 2 mm」。",
+      "source": "https://visa-guru.ru/blog/zagranpassport/foto-na-zagranpasport",
+      "quote": "Действующие стандарты предписывают, чтобы вверху снимка оставался зазор не менее 2 мм, а голова занимала примерно 32–36 мм.",
+      "verified": true
+    },
+    {
+      "id": "ru-int-passport-single-source",
+      "claim": "新版申请表用的另一种 35 × 45 规格（头部 25–30 mm、留白 3 mm ± 1 mm）目前只有一个来源描述，因此不进入线上页面。",
+      "source": "https://39mm.ru/requirement.html",
+      "quote": "Нового образца (фото для анкеты на загранпаспорт): Размер: 35х45 мм. Цветность: цветная Размер головы: 25-30 мм. в высоту Поле над головой: 3 мм, разрешена погрешность 1 мм.",
+      "verified": true
+    }
+  ]
+}

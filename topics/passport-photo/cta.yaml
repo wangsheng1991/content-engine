@@ -1,0 +1,17 @@
+headline: "照片不进服务器，也能办证"
+body: |
+  这篇文章讲的是规格怎么核。而真要用的时候，你可能只想把手机上那张照片裁成 3 × 4。
+  这一步不需要装任何东西，也不需要上传：在浏览器里选好尺寸、对齐头部参考线、导出可打印的排版页，
+  对齐和裁切全在你自己的设备上完成，照片不会离开这个标签页。
+  尺寸表里每一个数字都带着来源原句，单一来源的规格不会出现在页面上。
+label: "打开证件照工具（免费，不上传）"
+url: https://www.dlss5nvidia.com/tools/passport-photo
+en:
+  headline: "The photo never has to leave your device"
+  body: |
+    This article is about how the specs were verified. If what you actually need is to turn the
+    photo in your phone into a 3 × 4 print, that step needs no install and no upload: pick the
+    size, align the head-height guide and export a printable sheet, all of it on your own device.
+    The photo does not leave the tab, and every size in the table carries the sentence it came from.
+  label: "Open the passport photo tool (free, no upload)"
+  url: https://www.dlss5nvidia.com/tools/passport-photo
