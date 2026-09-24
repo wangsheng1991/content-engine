@@ -10,6 +10,8 @@ Not because anyone is careless, but because these numbers live in sources of dif
 
 So I did something deliberately dumb: **every number carries the sentence it appeared in.**
 
+![The tool: choose a specification → upload and align → adjust the crop → download](assets/demo-still.png)
+
 ## What a row actually is
 
 A row is not "3 × 4 = 30 × 40 mm". It is:
