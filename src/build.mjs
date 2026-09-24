@@ -4,6 +4,9 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { ARTIFACT_TIERS, PLATFORMS } from './platforms.mjs';
 import { buildDeck, pandocPath } from './deck.mjs';
+// One parser for the deck: outline.json and the rendered deck come from the same reading of
+// slides.md, so a slide that renders cannot be a slide the outline has never heard of.
+import { slideOutline } from './slides.mjs';
 import { htmlLangOf, siteFor, stringsFor, englishSummary, englishTitle } from './i18n.mjs';
 import { COVER_HEIGHT, COVER_WIDTH, coverOf, englishCoverOf, imageSizeOf, missingAssets } from './images.mjs';
 import { extractHeadings, renderMarkdown, toPlainText } from './markdown.mjs';
@@ -188,6 +191,7 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
 
       if (view.has_slides) {
         const outline = slideOutline(topic.slides);
+        for (const problem of outline.problems) notes.push(`${slug}: slides.md — ${problem}`);
         emit(`deck/${slug}/slides.md`, topic.slides, { kind: 'deck', tier: ARTIFACT_TIERS.deck, source: `${slug}/slides.md` });
         emit(`deck/${slug}/outline.json`, `${JSON.stringify(outline, null, 2)}\n`, {
           kind: 'deck',
@@ -567,22 +571,6 @@ function blogMarkdown(topic, view, lang = 'zh') {
     ? `\n\n---\n\n**${callToAction.headline}**\n\n${oneLine(callToAction.body ?? '')}\n\n${callToAction.label}: ${withRef(callToAction.url, topic.slug)}\n`
     : '';
   return `${front}${view.article_markdown ?? ''}${sources}${cta}`;
-}
-
-function slideOutline(markdown) {
-  const slides = [];
-  let current = null;
-  for (const line of String(markdown).split('\n')) {
-    const heading = line.match(/^##\s+(.*)$/);
-    if (heading) {
-      current = { index: slides.length + 1, title: heading[1].trim(), bullets: [] };
-      slides.push(current);
-      continue;
-    }
-    const bullet = line.match(/^\s*[-*]\s+(.*)$/);
-    if (bullet && current) current.bullets.push(bullet[1].trim());
-  }
-  return { slides, total: slides.length };
 }
 
 function storyboardOf(video, topic) {

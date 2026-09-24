@@ -10,14 +10,37 @@
 //   content --help
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { build, loadConfig, scaffoldTopic } from '../src/build.mjs';
 import { gitPublish, publishReport, readManifest } from '../src/publish.mjs';
 import { serve } from '../src/serve.mjs';
 import { listTopicSlugs, loadTopic } from '../src/topic.mjs';
+import { writeOut } from '../src/util.mjs';
 import { verifyAll } from '../src/verify.mjs';
 import { hfPublish } from '../src/hf.mjs';
 import { BACKENDS, chromePath, coverOf, defaultBackend, renderImages } from '../src/images.mjs';
+import {
+  DEFAULT_ASPECT,
+  deckAspects,
+  deckManifest,
+  deckSize,
+  loadDeckTemplates,
+  renderDeck,
+} from '../src/deck.mjs';
+import { hasNarration, parseSlides } from '../src/slides.mjs';
+import {
+  DEFAULT_FPS,
+  DEFAULT_SECONDS,
+  DEFAULT_VOICE,
+  buildVideo,
+  ffmpegPath,
+  ffprobePath,
+  narrate,
+  planTimeline,
+  sayPath,
+  totalSeconds,
+} from '../src/video.mjs';
 import { lintAll } from '../src/lint.mjs';
 import { blueskyPublish } from '../src/bluesky.mjs';
 import { devtoPublish } from '../src/devto.mjs';
@@ -45,6 +68,7 @@ const HELP = `content — GitHub-first content engine
 用法:
   content build [slug...] [--all] [--site-only] [--out <dir>]
   content images [slug...] [--backend card|cloudflare|qwen|command] [--only <id,...>] [--force] [--dry-run]
+  content deck [slug...] [--aspect ${DEFAULT_ASPECT}] [--video] [--voice <name>] [--seconds <n>] [--out <dir>] [--dry-run]
   content lint [slug...]
   content verify [slug...] [--online] [--strict]
   content publish [--git] [--dry-run] [--hf] [--bluesky [<slug>...]] [--devto [<slug>...]] [--draft]
@@ -84,6 +108,17 @@ const HELP = `content — GitHub-first content engine
   自己的站点，搜索引擎的功劳记在站点上而不是复制品上。加 --draft 先存草稿，先加 --dry-run 看标题标签。
   有封面时一并作为 main_image 发过去（优先英文版封面），Dev.to 会把它转存到自己的 CDN，
   所以站点要先部署好再发这一条。
+
+  content deck 是"这份内容还能长成什么样"的那一步：把 topics/<slug>/slides.md 渲染成
+  dist/deck/<slug>/ 里的 deck.html（一份能翻能打印的整页文档）、slides/NN.png（每页一张，
+  直接就是小红书轮播）和 deck.pdf。加 --video 再出一支 deck.mp4：每页停留 --seconds 秒
+  （默认 5）；slides.md 里写了 ::: notes 的页，用 macOS 的 say 把那段话读出来当旁白，
+  停留多久由读出来多长决定 —— 所以先写旁白，视频长度自己就对了。旁白本来也是 pandoc
+  给 pptx 的演讲者备注，一份源同时喂三个出口。
+  --aspect 选画布：${deckAspects().join(' / ')}（默认 ${DEFAULT_ASPECT}）。--voice 指定音色，
+  默认 ${DEFAULT_VOICE ?? '（本机没有 say，只有静音视频）'}。它需要本机 Chrome（出图与打印）和 ffmpeg（合成），
+  CI 上没有，所以它和 content images 一样，不进 build，是本地跑的一步。
+  渲染完的 png 万一被 content build 清掉，重跑一次 content deck 即可。
 
   content lint 是发布前的文案闸门，管的是编译器管不了的那部分：标题、副标题、摘要、key_facts、
   行动号召和平台草稿都不走排版层，而它们恰恰是读者最先看到的那几行（链接预览、封面卡片、帖子）。
@@ -287,6 +322,121 @@ async function main() {
       );
       for (const item of result.failed) console.log(`  ✗ ${item.slug}/${item.id}：${item.reason}`);
       console.log('图像写在 topics/<slug>/assets/ 里，是随主题一起提交的源文件 —— dist/ 每次重建都会清空。');
+      break;
+    }
+    case 'deck': {
+      const slugs = rest.length ? rest : listTopicSlugs(ROOT, config.paths.topics);
+      const aspect = typeof flags.aspect === 'string' ? flags.aspect : DEFAULT_ASPECT;
+      const size = deckSize(aspect); // throws before anything is rendered, so a typo costs nothing
+      const templates = loadDeckTemplates(path.join(ROOT, config.paths.templates));
+      const outRoot = flags.out
+        ? path.resolve(ROOT, flags.out)
+        : path.join(ROOT, config.paths.out, 'deck');
+      const seconds = Number(flags.seconds) > 0 ? Number(flags.seconds) : DEFAULT_SECONDS;
+      const fps = Number(flags.fps) > 0 ? Number(flags.fps) : DEFAULT_FPS;
+      const dryRun = Boolean(flags['dry-run']);
+      const withVideo = Boolean(flags.video);
+      const voice = typeof flags.voice === 'string' ? flags.voice : flags.voice ? DEFAULT_VOICE : null;
+      const pdf = !flags['no-pdf'];
+      let built = 0;
+      let rendered = 0;
+
+      for (const slug of slugs) {
+        const topic = loadTopic(ROOT, slug, { topicsDir: config.paths.topics });
+        if (!topic.slides) {
+          console.log(`· ${slug}: 没有 slides.md，跳过`);
+          continue;
+        }
+        // The `#` heading names the deck; a deck that forgot one is still the topic's deck.
+        const deck = parseSlides(topic.slides);
+        if (!deck.title) deck.title = topic.source.title;
+        for (const problem of deck.problems) console.log(`  ! slides.md — ${problem}`);
+        const outDir = path.join(outRoot, slug);
+        console.log(`\n${slug} — ${deck.slides.length} 页 · ${size.width}×${size.height}（${aspect}）`);
+        for (const slide of deck.slides) {
+          const voiceMark = slide.notes ? ' 🎙' : '';
+          console.log(`  ${String(slide.index).padStart(2, '0')}  ${slide.title}${voiceMark}`);
+        }
+        if (hasNarration(deck)) {
+          console.log(`  （🎙 = 有旁白，视频里按旁白长度定页面时长）`);
+        }
+
+        if (dryRun) {
+          console.log(`  预览：会写 ${path.relative(ROOT, outDir)}/（deck.html · slides/*.png${pdf ? ' · deck.pdf' : ''}${withVideo ? ' · deck.mp4' : ''}）`);
+          continue;
+        }
+
+        const result = await renderDeck({
+          deck,
+          topic,
+          templates,
+          outDir,
+          aspect,
+          slug,
+          siteName: config.site.name,
+          lang: config.site.locale ?? 'zh-CN',
+          pdf,
+          log: () => {},
+        });
+        for (const note of result.notes) console.log(`  ! ${note}`);
+        if (!result.ok) {
+          console.log(`  ✗ ${result.reason ?? '这个 deck 没有渲染出任何页面'}`);
+          continue;
+        }
+        rendered += 1;
+        let timeline = null;
+        if (withVideo) {
+          const work = fs.mkdtempSync(path.join(os.tmpdir(), `deck-video-${slug}-`));
+          const spoken = voice
+            ? narrate({
+                pages: result.pages,
+                say: sayPath(),
+                probe: ffprobePath(),
+                voice,
+                rate: flags.rate,
+                workDir: work,
+                log: console.log,
+              })
+            : { files: {}, seconds: {}, notes: [] };
+          for (const note of spoken.notes) console.log(`  ! ${note}`);
+          timeline = planTimeline(result.pages, { seconds, spoken: spoken.seconds });
+          const video = buildVideo({
+            bin: ffmpegPath(),
+            timeline,
+            audio: spoken.files,
+            size: result.size,
+            fps,
+            outFile: path.join(outDir, 'deck.mp4'),
+          });
+          if (video.built) {
+            rendered += 1;
+            console.log(`  deck.mp4  ${totalSeconds(timeline).toFixed(1)}s · ${timeline.length} 页 · ${fps}fps`);
+          } else {
+            timeline = null;
+            console.log(`  ! 视频没出来：${video.reason}`);
+          }
+        }
+        // The deck outlives this build — `content build` rewrites slides.md beside the pictures but
+        // does not delete them — so what this was made from is recorded, not assumed.
+        const manifest = deckManifest({
+          slug,
+          aspect,
+          size: result.size,
+          pages: result.pages,
+          source: topic.slides,
+          files: result.files,
+          timeline,
+          video: timeline ? { file: 'deck.mp4', seconds: totalSeconds(timeline), fps, voice: voice ?? null } : null,
+        });
+        writeOut(path.join(outDir, 'deck.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+        console.log(`  → ${path.relative(ROOT, outDir)}/（${result.files.length + 1} 个文件）`);
+        built += 1;
+      }
+
+      console.log('');
+      if (dryRun) console.log('dry run：什么都没写。');
+      else if (!built) console.log(`没有可渲染的 deck（aspect 可选：${deckAspects().join(' / ')}）`);
+      else console.log(`deck：${built} 个主题渲染完成，共 ${rendered} 份产物（png 每页一张，可当小红书轮播用）`);
       break;
     }
     case 'lint': {

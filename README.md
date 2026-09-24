@@ -35,6 +35,8 @@ node bin/content.mjs build                 # compile every topic into dist/
 node bin/content.mjs build ml-sharp        # compile one topic
 node bin/content.mjs build --site-only     # tier A only (what CI publishes)
 node bin/content.mjs images                # draw the missing covers and illustrations
+node bin/content.mjs deck ml-sharp         # the deck: html, one png per page, pdf
+node bin/content.mjs deck ml-sharp --video # …and the video, with the `::: notes` spoken
 node bin/content.mjs lint                  # the copywriting gate
 node bin/content.mjs list                  # what each topic has
 node bin/content.mjs new my-topic          # scaffold a topic directory
@@ -46,11 +48,57 @@ node tests/run.mjs                         # the test suite (npm test)
 ```
 
 There are **no npm dependencies** — everything (YAML subset parser, markdown
-renderer, template engine, static server, cover-image cards) is in `src/` against
-Node's standard library. The external tools are `pandoc`, used when present to
-turn `deck/<slug>/slides.md` into a real `.pptx`, and a local **Chrome/Chromium**,
-used by the default image backend; without either, the skip is reported in
-`dist/manifest.json` and everything else still builds.
+renderer, template engine, static server, cover-image cards, the deck) is in
+`src/` against Node's standard library. The external tools are `pandoc`, used when
+present to turn `deck/<slug>/slides.md` into a real `.pptx`, a local
+**Chrome/Chromium**, used by the default image backend and by `content deck`, and
+**ffmpeg**, used by `content deck --video`; without any of them the skip is
+reported in `dist/manifest.json` and everything else still builds.
+
+## The deck, the pictures and the video
+
+`topics/<slug>/slides.md` is the deck source, and it is the same file for all
+three outputs:
+
+```markdown
+# Deck title
+
+## Slide title
+
+::: notes
+Spoken over this slide, not shown on it.
+:::
+
+- On the slide.
+```
+
+`content build` turns it into an editable `.pptx` through pandoc — the `::: notes`
+div becomes PowerPoint speaker notes. `content deck` renders the same file with
+the local Chrome instead:
+
+```bash
+node bin/content.mjs deck ml-sharp                    # deck.html + slides/00.png… + deck.pdf
+node bin/content.mjs deck ml-sharp --video --voice Tingting
+node bin/content.mjs deck ml-sharp --aspect 3:4      # 1080×1440, a 小红书 carousel
+```
+
+| Output | What it is for |
+| --- | --- |
+| `deck.html` | one scrollable, printable page; a folder you can hand to someone |
+| `slides/NN.png` | one image per page — the carousel, the thumbnail, the video frame |
+| `deck.pdf` | the same document printed, one page per slide, edge to edge |
+| `deck.mp4` | the pages plus narration. `00` is the cover; the written slides keep their numbers |
+
+A page with narration runs **as long as the voice does** (`say` reads it, ffprobe
+measures it, plus a 0.4 s breath); a page without one runs for `--seconds`
+(default 5). Sizes are in `rem` against a root that is one percent of the canvas
+width, so 16:9 and 3:4 come from one set of rules, and a slide written too full is
+scaled down to fit rather than spilling under its own footer.
+
+This step needs Chrome and — for video — ffmpeg, neither of which CI has, so like
+`content images` it runs locally and is not part of `content build`. The reasoning
+behind it, and what was rejected on the way, is in `docs/DECK_AND_VIDEO.md`.
+
 
 ## Cover images
 
@@ -276,11 +324,13 @@ src/images.mjs         covers and illustrations: card / cloudflare / qwen / comm
 src/typography.mjs     中西文间距与全角标点，构建期作用于中文正文
 src/lint.mjs           the copywriting gate (sparanoid/chinese-copywriting-guidelines)
 src/i18n.mjs           the English routes and the chrome strings for each language
-src/deck.mjs           pandoc bridge (deck.pptx)
+src/deck.mjs           the deck: pandoc → .pptx, Chrome → html/png/pdf
+src/slides.mjs         slides.md → slides, with `::: notes` as narration
+src/video.mjs          the timeline, `say` narration and the ffmpeg encode
 src/publish.mjs        tier report + optional git commit/push
 src/feedback.mjs       read the numbers back from Dev.to and Bluesky
 src/serve.mjs          static preview server
-templates/             website/, github/, huggingface/, xiaohongshu/,
+templates/             website/, github/, huggingface/, deck/, xiaohongshu/,
                        reddit/, x/, zhihu/, video/
 topics/                the content itself
 data/feedback/         the numbers the platforms report, git-ignored

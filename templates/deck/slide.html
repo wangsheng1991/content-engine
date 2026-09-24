@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<title>{{title}}</title>
+<style>
+  /* The canvas and the root size are the only things a caller sets; slide.css does the rest. */
+  html { font-size: {{base}}px; }
+  html, body { margin: 0; width: {{width}}px; height: {{height}}px; overflow: hidden; }
+  .slide { width: 100%; height: 100%; }
+{{{css}}}
+</style>
+</head>
+<body class="slide">
+  <header>
+    <span class="mark" aria-hidden="true">{{mark}}</span>
+    <span class="deck-name">{{deck_title}}</span>
+    <span class="num">{{counter}}</span>
+  </header>
+  <main>
+    <div class="content">
+      {{#if kicker}}<p class="kicker">{{kicker}}</p>{{/if}}
+      <{{heading_tag}}>{{title}}</{{heading_tag}}>
+      {{#if lead}}<p class="lead">{{{lead}}}</p>{{/if}}
+      {{#if body}}<div class="body">{{{body}}}</div>{{/if}}
+    </div>
+  </main>
+  <footer>
+    <span>{{footer}}</span>
+    <span class="tag">{{tag}}</span>
+  </footer>
+  <script>{{{fit}}}</script>
+</body>
+</html>

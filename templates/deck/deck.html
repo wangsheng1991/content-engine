@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<style>
+  html { font-size: {{base}}px; }
+  body { margin: 0; background: #eef0f3; }
+  .page { width: {{width}}px; height: {{height}}px; }
+{{{css}}}
+  /* Printing is the document's second job: one slide per sheet, edge to edge, no page chrome. */
+  @page { size: {{width}}px {{height}}px; margin: 0; }
+  @media print {
+    body { background: #fff; }
+    .board { display: block; padding: 0; gap: 0; }
+    .page { break-after: page; page-break-after: always; box-shadow: none; border-radius: 0; zoom: 1 !important; }
+    .page:last-child { break-after: auto; page-break-after: auto; }
+  }
+  @media screen {
+    .board { display: flex; flex-direction: column; align-items: center; gap: 3rem; padding: 3rem 1rem 5rem; }
+    .page { box-shadow: 0 1px 2px rgb(17 24 39 / .08), 0 12px 32px rgb(17 24 39 / .1); border-radius: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="board">
+{{#each pages}}
+  <section class="slide page" id="page-{{number}}">
+    <header>
+      <span class="mark" aria-hidden="true">{{mark}}</span>
+      <span class="deck-name">{{deck_title}}</span>
+      <span class="num">{{counter}}</span>
+    </header>
+    <main>
+      <div class="content">
+        {{#if kicker}}<p class="kicker">{{kicker}}</p>{{/if}}
+        <{{heading_tag}}>{{title}}</{{heading_tag}}>
+        {{#if lead}}<p class="lead">{{{lead}}}</p>{{/if}}
+        {{#if body}}<div class="body">{{{body}}}</div>{{/if}}
+      </div>
+    </main>
+    <footer>
+      <span>{{footer}}</span>
+      <span class="tag">{{tag}}</span>
+    </footer>
+  </section>
+{{/each}}
+</div>
+<script>{{{fit}}}</script>
+<script>
+  // A 1600px board does not fit a laptop, so the pages are scaled down on screen; print and the
+  // screenshotted single pages never see this, they read the canvas at full size.
+  (function () {
+    var canvas = {{width}};
+    function fit() {
+      var scale = Math.min(1, (document.documentElement.clientWidth - 32) / canvas);
+      var pages = document.querySelectorAll('.page');
+      for (var i = 0; i < pages.length; i += 1) pages[i].style.zoom = scale;
+    }
+    window.addEventListener('resize', fit);
+    fit();
+  })();
+</script>
+</body>
+</html>

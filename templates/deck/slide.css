@@ -1,0 +1,65 @@
+/* One slide's look, shared by the single-page html that Chrome screenshots and by the combined
+   deck.html. Every size is in `rem` against a root that the caller sets to one percent of the
+   canvas width, so the same rules hold at 1600×900, at 1080×1440 and at any other canvas. */
+:root {
+  --brand-600: #1a73e8; --gray-50: #f9fafb; --gray-200: #e5e7eb; --gray-500: #6b7280;
+  --gray-600: #4b5563; --gray-900: #111827;
+  --fg: var(--gray-900); --muted: var(--gray-600); --faint: var(--gray-500); --hair: var(--gray-200);
+}
+* { box-sizing: border-box; }
+.slide {
+  display: flex; flex-direction: column; padding: 5rem 5.5rem 3.4rem;
+  background: #ffffff; color: var(--fg); overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.slide header { display: flex; align-items: center; gap: .85rem; font-size: 1.35rem; color: var(--faint); }
+.slide .mark {
+  width: 2.5rem; height: 2.5rem; border-radius: .62rem; background: var(--fg); color: #fff;
+  display: grid; place-items: center; font-size: 1.15rem; font-weight: 600; flex: none;
+}
+.slide .deck-name { font-weight: 600; color: var(--muted); letter-spacing: -.01em; overflow: hidden; white-space: nowrap; }
+.slide .num { margin-left: auto; font-variant-numeric: tabular-nums; flex: none; }
+.slide main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 1.6rem 0; overflow: hidden; }
+/* `margin: auto` centres the content when it fits and starts it at the top when it does not —
+   `justify-content: center` would push a full slide out over its own header and footer instead.
+   `flex: none` keeps the box at its natural height, which is what the fit script measures; a
+   shrunken box would report the height it was squeezed to rather than the height it wants. */
+.slide .content { margin: auto 0; flex: none; }
+.slide h1 { font-size: 4.9rem; line-height: 1.16; font-weight: 600; letter-spacing: -.028em; margin: 0; text-wrap: balance; }
+.slide h2 { font-size: 4.2rem; line-height: 1.2; font-weight: 600; letter-spacing: -.025em; margin: 0 0 2.1rem; text-wrap: balance; }
+.slide .kicker {
+  font-size: 1.4rem; font-weight: 600; color: var(--brand-600); letter-spacing: .09em;
+  text-transform: uppercase; margin: 0 0 1.5rem;
+}
+.slide .lead { font-size: 2.35rem; line-height: 1.6; color: var(--muted); margin: 2.1rem 0 0; }
+.slide .body { font-size: 2.35rem; line-height: 1.6; color: var(--muted); }
+.slide .body > :first-child { margin-top: 0; }
+.slide .body > :last-child { margin-bottom: 0; }
+.slide .body p { margin: 0 0 1.1rem; }
+.slide .body ul, .slide .body ol { margin: 0; padding-left: 2.1rem; }
+.slide .body li { margin: 0 0 1.05rem; }
+.slide .body li:last-child { margin-bottom: 0; }
+.slide .body strong { color: var(--fg); font-weight: 600; }
+.slide .body a { color: var(--brand-600); text-decoration: none; }
+.slide .body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .88em;
+  background: var(--gray-50); border: 1px solid var(--hair); border-radius: .35rem; padding: .08em .4em;
+}
+.slide .body pre {
+  background: var(--gray-50); border: 1px solid var(--hair); border-radius: .8rem;
+  padding: 1.5rem 1.7rem; margin: 0; overflow: hidden;
+}
+.slide .body pre code { background: none; border: 0; padding: 0; font-size: 1.85rem; line-height: 1.5; color: var(--fg); }
+.slide .body table { width: 100%; border-collapse: collapse; font-size: 2.05rem; }
+.slide .body th, .slide .body td { text-align: left; padding: .85rem 1rem; border-bottom: 1px solid var(--hair); }
+.slide .body th { color: var(--fg); font-weight: 600; font-size: 1.75rem; }
+.slide .body tr:last-child td { border-bottom: 0; }
+.slide .body img { max-width: 100%; max-height: 100%; border-radius: .8rem; display: block; }
+.slide .body blockquote { margin: 0; padding-left: 1.7rem; border-left: .35rem solid var(--hair); color: var(--muted); }
+.slide footer {
+  display: flex; align-items: center; gap: 1rem; border-top: 1px solid var(--hair);
+  padding-top: 1.35rem; font-size: 1.3rem; color: var(--faint);
+}
+.slide .tag { margin-left: auto; }

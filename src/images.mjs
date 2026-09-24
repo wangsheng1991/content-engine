@@ -300,9 +300,19 @@ export function coverCardHtml(job) {
  * Chrome writes the PNG and then simply never exits — on macOS it sits there holding the display
  * link. So the completion signal cannot be the process exiting: it is the output file appearing and
  * holding a stable size, after which the whole process group is killed.
+ *
+ * Exported because the deck renders one page per image the same way, from the same browser.
  */
-function screenshot({ chrome, htmlFile, outFile, width, height, scale = 1, timeoutMs = 45000 }) {
+export function screenshot({ chrome, htmlFile, outFile, width, height, scale = 1, timeoutMs = 45000 }) {
   return new Promise((resolve) => {
+    // The completion signal is the output file settling, so a file left over from an earlier run
+    // would satisfy it before Chrome has written anything — a re-render would silently keep the
+    // old picture. Removing it first is what makes the signal mean "this run wrote this".
+    try {
+      fs.rmSync(outFile, { force: true });
+    } catch {
+      /* an undeletable file is not worth failing over; the size check below will catch it */
+    }
     const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'cover-chrome-'));
     const args = [
       '--headless',

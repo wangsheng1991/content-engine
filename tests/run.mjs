@@ -10,6 +10,25 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { build, loadConfig } from '../src/build.mjs';
+import {
+  DECK_ASPECTS,
+  DEFAULT_ASPECT,
+  deckDocument,
+  deckManifest,
+  deckPages,
+  deckSize,
+  loadDeckTemplates,
+  slideDocument,
+} from '../src/deck.mjs';
+import { hasNarration, parseSlides, slideOutline } from '../src/slides.mjs';
+import {
+  DEFAULT_SECONDS,
+  planTimeline,
+  sayArgs,
+  sayPath,
+  totalSeconds,
+  videoArgs,
+} from '../src/video.mjs';
 import { englishSummary, englishTitle, siteFor, stringsFor } from '../src/i18n.mjs';
 import {
   COVER_HEIGHT,
@@ -30,7 +49,7 @@ import { renderTemplate } from '../src/template.mjs';
 import { loadTopic } from '../src/topic.mjs';
 import { parseYaml } from '../src/yaml.mjs';
 import { verifyAll, verifyTopic } from '../src/verify.mjs';
-import { withRef } from '../src/util.mjs';
+import { sha256, withRef } from '../src/util.mjs';
 import { spaceCjk, spaceCjkHtml } from '../src/typography.mjs';
 import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
 import {
@@ -97,6 +116,11 @@ const SERVED_BODY = [
 
 let failures = 0;
 
+/** How many times `needle` occurs in `haystack` — for assertions about markup that repeats. */
+function count(haystack, needle) {
+  return String(haystack).split(needle).length - 1;
+}
+
 // Async cases are collected and awaited before the summary: a rejected promise that nobody waits
 // for would otherwise report as a pass and then crash the process after the totals are printed.
 const pending = [];
@@ -112,6 +136,180 @@ function test(name, fn) {
     }),
   );
 }
+
+// --- slides / deck / video ---------------------------------------------------
+test('slides: every `##` opens a slide, `::: notes` is narration rather than content', () => {
+  const deck = parseSlides(
+    [
+      '# SHARP',
+      '',
+      'A one-line lead.',
+      '',
+      '## The problem',
+      '',
+      '::: notes',
+      '这张照片没有视差。',
+      ':::-ish', // a line that merely starts like a closing fence stays inside the notes
+      ':::',
+      '',
+      '- One photo in, new viewpoints out.',
+      '- A single image has no parallax.',
+      '',
+      '## Quick start',
+      '',
+      '```bash',
+      '## not a slide, a shell comment',
+      'sharp --help',
+      '```',
+      '',
+      '- One line of inference.',
+    ].join('\n'),
+  );
+  assert.equal(deck.title, 'SHARP');
+  assert.match(deck.lead, /A one-line lead\./);
+  assert.equal(deck.slides.length, 2, 'a `##` inside a fenced block must not split a slide');
+  assert.deepEqual(deck.slides.map((s) => s.title), ['The problem', 'Quick start']);
+  assert.deepEqual(deck.slides[0].bullets, ['One photo in, new viewpoints out.', 'A single image has no parallax.']);
+  assert.match(deck.slides[1].html, /sharp --help/);
+  assert.equal(deck.slides[0].notes, '这张照片没有视差。\n:::-ish');
+  assert.equal(deck.slides[1].notes, '');
+  assert.ok(!/notes/.test(deck.slides[0].html), 'narration is spoken, so it never reaches the slide body');
+  assert.ok(hasNarration(deck) && !hasNarration(parseSlides('# x\n\n## a\n\n- b')));
+  assert.deepEqual(deck.problems, []);
+
+  // An unclosed notes block swallows the rest of the deck, so it is reported rather than silent.
+  const unclosed = parseSlides('# d\n\n## one\n\n::: notes\n说了半句\n\n## two\n\n- b');
+  assert.equal(unclosed.slides.length, 1);
+  assert.match(unclosed.problems[0], /never closed \(in slide 1: one\)/);
+});
+
+test('slides: the outline is read by the same parser that renders the deck', () => {
+  const source = fs.readFileSync(path.join(ROOT, 'topics/ml-sharp/slides.md'), 'utf8');
+  const outline = slideOutline(source);
+  const deck = parseSlides(source);
+  assert.equal(outline.total, deck.slides.length);
+  assert.deepEqual(
+    outline.slides.map((s) => s.title),
+    deck.slides.map((s) => s.title),
+  );
+  assert.ok(deck.slides.some((s) => s.notes), 'ml-sharp carries narration for the video');
+});
+
+test('deck: the aspect picks the canvas, and a cover is page zero', () => {
+  assert.deepEqual(deckSize('3:4'), { width: 1080, height: 1440 });
+  assert.deepEqual(deckSize(), DECK_ASPECTS[DEFAULT_ASPECT]);
+  assert.throws(() => deckSize('16:10'), /unknown deck aspect/);
+
+  const pages = deckPages(parseSlides('# Deck\n\nLead.\n\n## One\n\n- a'), { slug: 'demo', siteName: 'AI Notes' });
+  assert.equal(pages.length, 2);
+  assert.equal(pages[0].number, 0, 'the cover is 0 so the written slides keep their own numbers');
+  assert.equal(pages[0].counter, '');
+  assert.equal(pages[0].heading_tag, 'h1');
+  assert.equal(pages[1].counter, '1 / 1');
+  assert.match(pages[0].lead, /Lead\./);
+});
+
+test('deck: one rem is one percent of the canvas, and the fit script is in both documents', () => {
+  const templates = loadDeckTemplates(path.join(ROOT, 'templates'));
+  const pages = deckPages(parseSlides('# D\n\n## S\n\n- b'));
+  const wide = slideDocument({ page: pages[1], size: deckSize('16:9'), css: templates.css, templates });
+  const tall = slideDocument({ page: pages[1], size: deckSize('3:4'), css: templates.css, templates });
+  assert.match(wide, /html \{ font-size: 16px;/);
+  assert.match(tall, /html \{ font-size: 10.8px;/);
+  assert.match(wide, /width: 1600px; height: 900px;/);
+  assert.equal(count(wide, 'function fit(slide)'), 1, 'a slide that overflows is scaled down, not clipped');
+  const whole = deckDocument({ pages, size: deckSize('16:9'), css: templates.css, templates, title: 'D' });
+  assert.match(whole, /@page \{ size: 1600px 900px; margin: 0; \}/);
+  assert.match(whole, /zoom: 1 !important/, 'the screen zoom must not leak into the print');
+  assert.equal(count(whole, 'class="slide page"'), 2);
+});
+
+// --- video -------------------------------------------------------------------
+test('video: a page with narration runs as long as the voice, a page without runs as long as asked', () => {
+  const pages = [
+    { number: 0, title: 'cover', path: '/tmp/00.png' },
+    { number: 1, title: 'one', path: '/tmp/01.png' },
+    { number: 2, title: 'two', path: '/tmp/02.png' },
+  ];
+  const timeline = planTimeline(pages, { seconds: 5, tail: 0.4, spoken: { 1: 9.472154 } });
+  assert.deepEqual(timeline.map((e) => e.duration), [5, 9.87, 5]);
+  assert.deepEqual(timeline.map((e) => e.narrated), [false, true, false]);
+  assert.equal(totalSeconds(timeline), 19.87);
+
+  // A synthesis that failed measured nothing, so the page keeps the still length instead of
+  // disappearing from the video.
+  const none = planTimeline(pages, { seconds: 4, spoken: {} });
+  assert.deepEqual(none.map((e) => e.duration), [4, 4, 4]);
+  assert.equal(planTimeline(pages, { seconds: 0 })[0].duration, DEFAULT_SECONDS);
+});
+
+test('video: every page gets exactly one image input and one audio input, in the same order', () => {
+  const timeline = planTimeline(
+    [
+      { number: 1, title: 'a', path: '/tmp/01.png' },
+      { number: 2, title: 'b', path: '/tmp/02.png' },
+    ],
+    { seconds: 5, spoken: { 2: 3 } },
+  );
+  const args = videoArgs({
+    timeline,
+    audio: { 2: '/tmp/narration-02.aiff' },
+    size: { width: 1600, height: 900 },
+    outFile: '/tmp/out.mp4',
+  });
+  assert.deepEqual(args.slice(0, 8), ['-hide_banner', '-loglevel', 'error', '-y', '-loop', '1', '-t', '5']);
+  assert.equal(count(args.join(' '), '-i '), 4, 'two images and two audio inputs');
+  assert.ok(args.includes('/tmp/narration-02.aiff'));
+  assert.ok(args.includes('anullsrc=r=44100:cl=stereo'), 'a page with no voice gets silence, not a gap');
+  const graph = args[args.indexOf('-filter_complex') + 1];
+  assert.match(graph, /\[0:v\][^;]*\[v0\]/);
+  assert.match(graph, /\[1:v\][^;]*\[v1\]/);
+  assert.match(graph, /\[2:a\][^;]*atrim=0:5\[a0\]/);
+  assert.match(graph, /\[3:a\][^;]*atrim=0:3.4\[a1\]/);
+  assert.match(graph, /concat=n=2:v=1:a=1\[vout\]\[aout\]$/);
+  assert.equal(args[args.length - 1], '/tmp/out.mp4');
+});
+
+test('video: narration is read from a file, so quotes and dashes need no escaping', () => {
+  assert.deepEqual(sayArgs({ voice: 'Tingting', outFile: '/tmp/n.aiff', textFile: '/tmp/n.txt' }), [
+    '-v',
+    'Tingting',
+    '-o',
+    '/tmp/n.aiff',
+    '-f',
+    '/tmp/n.txt',
+  ]);
+  assert.ok(sayArgs({ rate: 200, outFile: 'o', textFile: 't' }).includes('200'));
+  // `say` only exists on macOS, and asking for it elsewhere is not an error — just a silent video.
+  assert.equal(sayPath(), process.platform === 'darwin' ? '/usr/bin/say' : null);
+});
+
+test('deck: the manifest says what the pictures were made from and how long each page runs', () => {
+  const pages = [
+    { number: 0, title: 'cover', file: 'slides/00.png', notes: '' },
+    { number: 1, title: 'one', file: 'slides/01.png', notes: '说一句话' },
+  ];
+  const manifest = deckManifest({
+    slug: 'demo',
+    aspect: '16:9',
+    size: deckSize('16:9'),
+    pages,
+    source: '# Deck\n',
+    files: ['deck.html'],
+    timeline: planTimeline(pages, { seconds: 5, spoken: { 1: 3 } }),
+    video: { file: 'deck.mp4', seconds: 8.4, fps: 30, voice: 'Tingting' },
+  });
+  assert.equal(manifest.source, 'slides.md');
+  assert.equal(manifest.source_sha256, sha256('# Deck\n').slice(0, 16));
+  assert.deepEqual(manifest.pages.map((p) => p.narrated), [false, true]);
+  assert.deepEqual(manifest.pages.map((p) => p.duration), [5, 3.4]);
+  assert.equal(manifest.video.seconds, 8.4);
+  // Without a video there are no durations to report, only whether a page has something to say.
+  const still = deckManifest({ slug: 'd', aspect: '3:4', size: deckSize('3:4'), pages, source: 'x' });
+  assert.equal(still.pages[1].duration, undefined);
+  assert.equal(still.pages[1].narrated, true);
+  assert.equal(still.video, null);
+});
 
 // --- yaml -------------------------------------------------------------------
 test('yaml: maps, sequences, block scalars, flow collections and comments', () => {
