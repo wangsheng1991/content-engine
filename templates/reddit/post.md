@@ -1,42 +1,35 @@
-<!-- draft · tier B · approve before posting · generated from topics/{{ topic.slug }}/ at {{ generated_at }} -->
+<!-- draft · tier B · approve before posting · generated from topics/{{{topic.slug}}}/ at {{{generated_at}}} -->
 <!-- Read the target subreddit's rules first. Do not use this for unsolicited outreach or automated posting. -->
+<!-- A post with no picture does not travel here. The files below are in topics/{{{topic.slug}}}/assets/ — upload one with the post, do not link to it. -->
 
-# {{ platform.title }}
+# {{{platform.title}}}
 
-{{ platform.hook }}
+{{{platform.hook}}}
 
-**TL;DR** — {{ topic.summary_text }}
+**TL;DR** — {{{topic.summary_text_en}}}
 
 **What it actually does**
-{{#each topic.key_facts}}- {{ label }}: {{ value }}
+{{#each topic.key_facts}}- {{{label}}}: {{{value}}}
 {{/each}}
 
-**Why I think it is worth a look**
+{{#if topic.media}}**The picture**
 
-{{ topic.subtitle }}
-
-**Running it**
-
-```bash
-conda create -n sharp python=3.13
-conda activate sharp
-pip install -r requirements.txt
-sharp predict -i /path/to/input/images -o /path/to/output/gaussians
-```
-
+{{#each topic.media}}- `{{{file}}}` ({{{kind}}}) — {{{caption_en}}}
+{{/each}}
+{{/if}}
+{{#if platform.extra}}
+{{{platform.extra}}}
+{{/if}}
 **Sources**
 {{#each evidence}}
-> {{ claim }}
-> — {{ source }}
+> {{{claim}}}
+> — {{{source}}}
 {{/each}}
-{{ topic.canonical.repo }} — official repository
-{{ topic.canonical.paper }} — paper
-{{ topic.canonical.project }} — project page with video comparisons
 
 *Notes compiled with a small content engine; corrections welcome on any detail.*
 {{#if cta}}
 
 ---
 
-*Disclosure: I work on [{{ cta.label }}]({{ cta.url }}), an online AI image editor — unrelated to this project's release, mentioned because the notes are hosted there.*
+*Disclosure: these notes are hosted on a site of mine, and the call to action above points at its free tool.*
 {{/if}}

@@ -51,6 +51,27 @@ links:
     url: https://visa-guru.ru/blog/zagranpassport/foto-na-zagranpasport
   - label: "在线使用（不上传，无需账号）"
     url: https://www.dlss5nvidia.com/tools/passport-photo
+media:
+  - file: assets/demo-vertical.mp4
+    kind: video
+    caption: "选规格 → 对齐参考线 → 导出可打印排版页，6.6 秒，3∶4 竖版"
+    caption_en: "Choose the format, align to the guides, export the printable sheet — 6.6 s, 3:4"
+    alt: "Screen recording of the passport photo tool: the Russian 3 × 4 row is selected, the crown and chin are dragged onto the green guide lines, and a printable 10 × 15 cm sheet is exported."
+  - file: assets/demo.mp4
+    kind: video
+    caption: "同一段过程，保留界面原始比例"
+    caption_en: "The same run, at the interface's own aspect ratio"
+    alt: "The same recording of the passport photo tool at its original framing."
+  - file: assets/demo.gif
+    kind: image
+    caption: "动图版（962 KB，在 Bluesky 的 1 MB 上限内）"
+    caption_en: "The animated version — 962 KB, inside Bluesky's 1 MB limit"
+    alt: "Looping animation of the passport photo tool: the 3 × 4 row is picked, the vertical slider moves until the crown and chin sit on the green guide lines, the tool switches to the 35 × 45 passport row, and a printable sheet is exported."
+  - file: assets/demo-still.png
+    kind: image
+    caption: "对齐完成的那一帧：头顶贴着上参考线，下巴落在下参考线"
+    caption_en: "The aligned frame: crown on the upper guide, chin on the lower one"
+    alt: "Screenshot of the passport photo tool with a photo whose crown touches the upper guide line and whose chin sits on the lower one, the export buttons to the right."
 platforms:
   devto:
     tags: [privacy, tools, webdev, image]
@@ -59,6 +80,7 @@ platforms:
       Your ID photo is the one image you shouldn't have to upload to a website just to crop it.
 
       Every number in our table carries the sentence it came from. One contradicted three others — it stays in, with the reason it lost.
+    images: [assets/demo.gif]
   reddit:
     title: "I bound every number in a passport photo spec table to the sentence it came from — one conflicting figure stayed in with the reason it lost"
     hook: "Russian 3×4 and 35×45 formats as data rows: size, head height band, headroom band, DPI, and the verbatim quotation each figure came from. One source claimed an 11–13 mm head height against three others; it is still in the table with why it was rejected, so the next person re-reading that page finds the decision instead of repeating it. One format with a single source is not shipped at all."

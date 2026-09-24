@@ -58,6 +58,19 @@ platforms:
   reddit:
     title: "Apple's SHARP turns a single photo into a renderable 3D Gaussian scene in under a second"
     hook: "Apple released SHARP: one photo in, a metric 3D Gaussian splat out, in under a second on a standard GPU."
+    extra: |
+      Reproduction, if you want to run it yourself:
+
+      ```bash
+      conda create -n sharp python=3.13
+      conda activate sharp
+      pip install -r requirements.txt
+      sharp predict -i /path/to/input/images -o /path/to/output/gaussians
+      ```
+
+      Official repository: https://github.com/apple/ml-sharp
+      Paper: https://arxiv.org/abs/2512.10685
+      Project page with video comparisons: https://apple.github.io/ml-sharp/
   x:
     title: "Apple's SHARP: one photo in, a metric 3D Gaussian scene out, in under a second."
   zhihu:

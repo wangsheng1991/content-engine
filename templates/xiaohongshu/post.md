@@ -1,24 +1,24 @@
-<!-- draft · tier B · 需人工确认后发布 · 由 content-engine 从 topics/{{ topic.slug }}/ 生成于 {{ generated_at }} -->
-<!-- 配图建议：正文前 3 秒内用一张「输入图 → 3D 场景」的对比图；图片需另配，不在本文件内 -->
+<!-- draft · tier B · 需人工确认后发布 · 由 content-engine 从 topics/{{{topic.slug}}}/ 生成于 {{{generated_at}}} -->
+<!-- 配图/视频在下面「素材」一节列着，文件在 topics/{{{topic.slug}}}/assets/ 里 —— 小红书要先图后文，第一条笔记请带上视频 -->
 
-# {{ platform.title }}
+# {{{platform.title}}}
 
-{{ platform.hook }}
+{{{platform.hook}}}
 
-{{ topic.subtitle }}
+{{{topic.subtitle}}}
 
 为什么值得看 👇
-{{#each topic.key_facts}}· {{ label }}：{{ value }}
+{{#each topic.key_facts}}· {{{label}}}：{{{value}}}
 {{/each}}
-一句话原理：不是一步步重建，而是让模型一次前馈就回归出场景的 3D 高斯表示。
 
-想自己跑的话，仓库里一条命令就能试：
-`sharp predict -i 输入图目录 -o 输出目录`
+素材（按平台选一条：小红书优先发视频，其次发动图）
+{{#each topic.media}}· {{{file}}}（{{{kind}}}）—— {{{caption}}}
+{{/each}}
 
-仓库和论文都在这里 👉 {{ topic.canonical.repo }}
+{{#if platform.extra}}{{{platform.extra}}}
+{{/if}}
+{{{cta.headline}}}
+{{{cta.body_text}}}
+{{{cta.label}}} 👉 {{{cta.url}}}
 
-{{ cta.headline }}
-{{ cta.body_text }}
-{{ cta.label }} 👉 {{ cta.url }}
-
-{{ topic.hashtags_zh }}
+{{{topic.hashtags_zh}}}

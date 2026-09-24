@@ -33,7 +33,20 @@ import { verifyAll, verifyTopic } from '../src/verify.mjs';
 import { withRef } from '../src/util.mjs';
 import { spaceCjk, spaceCjkHtml } from '../src/typography.mjs';
 import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
-import { POST_LIMIT, blueskyPublish, composePost, createSession, graphemeLength, linkFacets, topicLink } from '../src/bluesky.mjs';
+import {
+  MAX_IMAGES,
+  MAX_IMAGE_BYTES,
+  POST_LIMIT,
+  blueskyPublish,
+  composeImages,
+  composePost,
+  createSession,
+  graphemeLength,
+  imageEmbed,
+  linkFacets,
+  topicLink,
+  uploadBlob,
+} from '../src/bluesky.mjs';
 import {
   BODY_MAX,
   TAG_LIMIT,
@@ -623,6 +636,121 @@ test('bluesky: a dry run prints what it would send and contacts nothing', () => 
   assert.ok(lines.some((line) => line.includes('dry-run')), 'a dry run must say so');
   assert.ok(lines.some((line) => line.includes('/topics/ml-sharp/')), 'the post must name its own page');
   assert.ok(lines.some((line) => /\/300 字符/.test(line)), 'the length must be shown before publishing');
+});
+
+// --- bluesky images ----------------------------------------------------------
+// A post with a picture travels and a post without one does not, so the publisher can attach
+// images. The three ways this goes wrong are all silent from the sending side: an image with no
+// alt text, an image over the account's megabyte, and a blob that uploaded into a record that
+// dropped it — which is why the read-back counts them.
+
+/** A throwaway topic with one asset on disk, so nothing here touches topics/. */
+function blueskyTopic({ source, files = { 'assets/demo.png': Buffer.from([0x89, 0x50, 0x4e, 0x47]) } } = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bsky-'));
+  const dir = path.join(root, 'topics', 'demo');
+  fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+  for (const [rel, bytes] of Object.entries(files)) fs.writeFileSync(path.join(dir, rel), bytes);
+  fs.writeFileSync(path.join(dir, 'source.yaml'), `title: "Demo"\nsummary: "A demo topic."\n${source}`);
+  return { root, topic: loadTopic(root, 'demo') };
+}
+
+test('bluesky: an image is listed once, and its alt text is taken from the media list', () => {
+  const { root, topic } = blueskyTopic({
+    source: [
+      'media:',
+      '  - file: assets/demo.png',
+      '    kind: image',
+      '    caption: "动图版"',
+      '    alt: "A screenshot of the tool."',
+      'platforms:',
+      '  bluesky:',
+      '    text: "hello"',
+      '    images: [assets/demo.png]',
+      '',
+    ].join('\n'),
+  });
+  const images = composeImages(topic, { root });
+  assert.equal(images.length, 1);
+  assert.equal(images[0].alt, 'A screenshot of the tool.');
+  assert.equal(images[0].mime, 'image/png');
+  assert.equal(images[0].bytes, 4);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('bluesky: an image with no alt text anywhere is refused, not posted', () => {
+  const { root, topic } = blueskyTopic({
+    source: ['platforms:', '  bluesky:', '    text: "hello"', '    images: [assets/demo.png]', ''].join('\n'),
+  });
+  assert.throws(() => composeImages(topic, { root }), /没有 alt/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('bluesky: an image over the account limit is refused before anything is uploaded', () => {
+  const { root, topic } = blueskyTopic({
+    files: { 'assets/big.png': Buffer.alloc(MAX_IMAGE_BYTES + 1) },
+    source: [
+      'media:',
+      '  - file: assets/big.png',
+      '    alt: "too big"',
+      'platforms:',
+      '  bluesky:',
+      '    images: [assets/big.png]',
+      '',
+    ].join('\n'),
+  });
+  assert.throws(() => composeImages(topic, { root }), /超过 Bluesky 的 1000000/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('bluesky: five images are refused, and a missing file says which file', () => {
+  const files = {};
+  const entries = [];
+  for (let i = 0; i < MAX_IMAGES + 1; i += 1) {
+    files[`assets/${i}.png`] = Buffer.from([0x89]);
+    entries.push(`  - file: assets/${i}.png`, `    alt: "image ${i}"`);
+  }
+  const { root, topic } = blueskyTopic({
+    files,
+    source: ['media:', ...entries, 'platforms:', '  bluesky:', `    images: [${Object.keys(files).join(', ')}]`, ''].join('\n'),
+  });
+  assert.throws(() => composeImages(topic, { root }), new RegExp(`最多 ${MAX_IMAGES} 张`));
+
+  const missing = blueskyTopic({
+    source: ['media:', '  - file: assets/nope.png', '    alt: "x"', 'platforms:', '  bluesky:', '    images: [assets/nope.png]', ''].join('\n'),
+  });
+  assert.throws(() => composeImages(missing.topic, { root: missing.root }), /找不到 assets\/nope\.png/);
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(missing.root, { recursive: true, force: true });
+});
+
+test('bluesky: the embed keeps the order it was given, and is absent when there are no images', () => {
+  const blobs = [{ $type: 'blob', ref: { $link: 'bafyone' } }, { $type: 'blob', ref: { $link: 'bafytwo' } }];
+  const embed = imageEmbed([{ alt: 'first' }, { alt: 'second' }], blobs);
+  assert.equal(embed.$type, 'app.bsky.embed.images');
+  assert.deepEqual(embed.images.map((i) => i.alt), ['first', 'second']);
+  assert.equal(embed.images[0].image.ref.$link, 'bafyone');
+  assert.equal(imageEmbed([], []), undefined, 'a post with no images must carry no embed at all');
+});
+
+test('bluesky: a dry run names the images and their alt text, and contacts nothing', () => {
+  const { root } = blueskyTopic({
+    source: [
+      'media:',
+      '  - file: assets/demo.png',
+      '    alt: "A screenshot of the tool."',
+      'platforms:',
+      '  bluesky:',
+      '    text: "hello"',
+      '    images: [assets/demo.png]',
+      '',
+    ].join('\n'),
+  });
+  const lines = [];
+  const result = blueskyPublish({ root, config: BS_CONFIG, slugs: ['demo'], dryRun: true, log: (l) => lines.push(String(l)) });
+  assert.equal(result.ok, true);
+  assert.ok(lines.some((l) => l.includes('1 张图')), 'the dry run must count the images');
+  assert.ok(lines.some((l) => l.includes('A screenshot of the tool.')), 'and print the alt text');
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 // --- wan-i2v (image-to-video) -------------------------------------------------

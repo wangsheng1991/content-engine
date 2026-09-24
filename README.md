@@ -125,6 +125,17 @@ to be deployed first — which is the order `content publish` already uses). The
 model backend may answer a pixel or two off the 1200×630 that was requested —
 FLUX lays out on 16-pixel blocks, so 630 comes back as 624.
 
+A cover is not the same as a post that travels. Every platform here is a feed
+where the reader's thumb decides, so a topic also carries a `media:` list — the
+demo video, the gif, the still — each with a caption and an `alt`. The Tier B
+drafts name those files, `content build` says so when a topic has none, and
+`content publish --bluesky` attaches the images it is told to with
+`platforms.bluesky.images`. Two rules are enforced rather than encouraged: an
+image with no alt text is refused, and an image over the account's megabyte is
+refused before the upload rather than after the rejection. The read-back then
+counts the images that came out, because a blob that uploaded fine into a record
+that dropped it looks exactly like success from the sending side.
+
 ## Two gates before anything ships
 
 `content lint` and `content verify` answer two different questions, and both run in CI.

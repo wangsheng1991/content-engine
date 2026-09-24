@@ -72,6 +72,9 @@ const HELP = `content — GitHub-first content engine
 
   content publish --bluesky <slug> 单列：Bluesky 是这套平台里唯一用账号自己的 app password
   就能发的，凭证放 vault（BLUESKY_HANDLE / BLUESKY_APP_PASSWORD），发布后回读公开接口确认。
+  带图发就把文件写进 source.yaml 的 platforms.bluesky.images（最多 4 张、每张 ≤ 1 MB），
+  alt 文本写在主题自己的 media: 列表里 —— 没有 alt 的图会被拒绝，不会被静默发出去。
+  一条纯文字的帖子在这些平台上没人点，所以 content images 之外还该有 media:（视频/动图）。
 
   content publish --devto <slug> 发长文：只需一个 DEVTO_API_KEY（账号设置里自己生成，无审核）。
   正文取 dist 里编译好的 blog/<slug>.md（含证据与已带 ?ref= 的 CTA），用 canonical_url 指回

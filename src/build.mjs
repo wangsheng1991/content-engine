@@ -165,6 +165,10 @@ export function build({ root, config, slugs, siteOnly = false, outDir, log = () 
     // A cover is committed source, so a topic without one is a missing image on every platform that
     // renders a link preview. Say it at build time rather than noticing it on someone else's timeline.
     if (!view.topic.has_cover) notes.push(`${slug}: no cover image — run \`content images ${slug}\``);
+    // A post with no picture does not travel on any of these platforms: the feed is a race for the
+    // thumb, and a wall of text loses it before the first line is read. Said at build time, where
+    // it is cheap to fix, rather than noticed after a post nobody clicked.
+    if (!view.topic.media.length) notes.push(`${slug}: no media — a text-only post; add a demo video or gif under \`media:\``);
     for (const missing of missingAssets(topic)) notes.push(`${slug}: article.md references ${missing}, which does not exist`);
 
     if (!siteOnly) {
@@ -451,6 +455,14 @@ function buildTopicView(topic, ctx, lang = 'zh') {
       summary,
       summary_html: summaryHtml,
       summary_text: oneLine(summary),
+      // The Tier B drafts are written for the platform, and two of those platforms read English:
+      // Reddit and X get the English strings when the topic has them, rather than a Chinese TL;DR.
+      title_en: englishTitle(s),
+      subtitle_en: String(s.subtitle_en ?? '').trim(),
+      summary_text_en: oneLine(englishSummary(s)),
+      // The visuals the topic produced: one list, so a draft names the video and the still it
+      // actually has instead of carrying a suggestion for an image nobody made.
+      media: toArray(s.media),
       key_facts: s.key_facts ?? [],
       links: s.links ?? [],
       canonical: s.canonical ?? {},
@@ -483,6 +495,9 @@ function buildTopicView(topic, ctx, lang = 'zh') {
     // An English page shows the English call to action when `cta.yaml` carries an `en:` block, and
     // none at all when it does not — a Chinese button under an English article is not a conversion.
     cta: ctaFor(topic.cta, lang, topic.slug),
+    // The Reddit and X drafts are English posts: they need the English button even though the view
+    // they are rendered from is the Chinese one.
+    cta_en: ctaFor(topic.cta, 'en', topic.slug),
   };
   view.article_html = articleHtml;
   view.article_markdown = article;
