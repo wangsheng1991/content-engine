@@ -76,11 +76,19 @@ platforms:
   devto:
     tags: [privacy, tools, webdev, image]
   bluesky:
-    text: |
-      Your ID photo is the one image you shouldn't have to upload to a website just to crop it.
+    posts:
+      - id: spec-table
+        text: |
+          Your ID photo is the one image you shouldn't have to upload to a website just to crop it.
 
-      Every number in our table carries the sentence it came from. One contradicted three others — it stays in, with the reason it lost.
-    images: [assets/demo.gif]
+          Every number in our table carries the sentence it came from. One contradicted three others — it stays in, with the reason it lost.
+        images: [assets/demo.gif]
+      - id: demo
+        text: |
+          Pick the verified format, drag the crown and chin onto the guide lines, export a printable sheet. Six seconds, no upload, no account.
+
+          Two Russian rows (3 × 4 and 35 × 45), each one carrying the sentence its numbers came from.
+        images: [assets/demo.gif]
   reddit:
     title: "I bound every number in a passport photo spec table to the sentence it came from — one conflicting figure stayed in with the reason it lost"
     hook: "Russian 3×4 and 35×45 formats as data rows: size, head height band, headroom band, DPI, and the verbatim quotation each figure came from. One source claimed an 11–13 mm head height against three others; it is still in the table with why it was rejected, so the next person re-reading that page finds the decision instead of repeating it. One format with a single source is not shipped at all."

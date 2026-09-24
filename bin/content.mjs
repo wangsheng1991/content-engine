@@ -70,11 +70,14 @@ const HELP = `content — GitHub-first content engine
   {height} 填进任意命令）。插画写在 source.yaml 的 images: 里，正文用 assets/<id>.<png|jpg> 引用。
   封面与插画可以分开选：images.coverBackend / images.illustrationBackend，后者优先于 images.backend。
 
-  content publish --bluesky <slug> 单列：Bluesky 是这套平台里唯一用账号自己的 app password
+  content publish --bluesky <slug> [--force] 单列：Bluesky 是这套平台里唯一用账号自己的 app password
   就能发的，凭证放 vault（BLUESKY_HANDLE / BLUESKY_APP_PASSWORD），发布后回读公开接口确认。
   带图发就把文件写进 source.yaml 的 platforms.bluesky.images（最多 4 张、每张 ≤ 1 MB），
   alt 文本写在主题自己的 media: 列表里 —— 没有 alt 的图会被拒绝，不会被静默发出去。
   一条纯文字的帖子在这些平台上没人点，所以 content images 之外还该有 media:（视频/动图）。
+  一个主题想发多条就写成 platforms.bluesky.posts（每条一个 id）；发过的记在 data/published/
+  bluesky.json 里，重跑只会跳过，不会重复发 —— 想再发一次加 --force。发一次删不掉，
+  这是唯一一个「手滑」比「忘了发」贵的平台。
 
   content publish --devto <slug> 发长文：只需一个 DEVTO_API_KEY（账号设置里自己生成，无审核）。
   正文取 dist 里编译好的 blog/<slug>.md（含证据与已带 ?ref= 的 CTA），用 canonical_url 指回
@@ -178,6 +181,7 @@ async function main() {
           identifier: process.env.BLUESKY_HANDLE || process.env.BLUESKY_IDENTIFIER,
           password: process.env.BLUESKY_APP_PASSWORD,
           dryRun: Boolean(flags['dry-run']),
+          force: Boolean(flags.force),
           log: console.log,
         });
       }

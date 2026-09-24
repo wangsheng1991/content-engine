@@ -7,3 +7,5 @@ dist-*/
 .env.*
 # Numbers from the platforms change every day; only what was published belongs in git.
 data/feedback/
+# What has already been sent — it describes the world, not the source.
+data/published/

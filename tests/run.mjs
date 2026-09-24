@@ -37,6 +37,7 @@ import {
   MAX_IMAGES,
   MAX_IMAGE_BYTES,
   POST_LIMIT,
+  blueskyPosts,
   blueskyPublish,
   composeImages,
   composePost,
@@ -44,6 +45,8 @@ import {
   graphemeLength,
   imageEmbed,
   linkFacets,
+  postKey,
+  readLedger,
   topicLink,
   uploadBlob,
 } from '../src/bluesky.mjs';
@@ -751,6 +754,76 @@ test('bluesky: a dry run names the images and their alt text, and contacts nothi
   assert.ok(lines.some((l) => l.includes('1 张图')), 'the dry run must count the images');
   assert.ok(lines.some((l) => l.includes('A screenshot of the tool.')), 'and print the alt text');
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+// --- bluesky: several posts, and the record of what already went out --------------
+// Posting twice is the one mistake on this platform that cannot be undone quietly: there is no
+// edit, and a duplicate on somebody's timeline is the whole of the mistake. So a topic can carry
+// more than one post, and what has been sent is remembered by id.
+
+test('bluesky: a topic without posts gets one post, and a topic with posts gets them all', () => {
+  assert.deepEqual(blueskyPosts({ slug: 'd', source: {} }).map((p) => p.id), ['main']);
+  assert.deepEqual(
+    blueskyPosts({ slug: 'd', source: { platforms: { bluesky: { text: 'hi' } } } }).map((p) => [p.id, p.text]),
+    [['main', 'hi']],
+  );
+
+  const many = blueskyPosts({
+    slug: 'demo',
+    source: { platforms: { bluesky: { posts: [{ id: 'a', text: 'one' }, { id: 'b', text: 'two' }] } } },
+  });
+  assert.deepEqual(many.map((p) => p.id), ['a', 'b']);
+  assert.deepEqual(many.map((p) => p.text), ['one', 'two']);
+});
+
+test('bluesky: posts with duplicate ids are refused, because the ledger remembers ids', () => {
+  const topic = { slug: 'demo', source: { platforms: { bluesky: { posts: [{ id: 'x' }, { id: 'x' }] } } } };
+  assert.throws(() => blueskyPosts(topic), /重复/);
+  assert.throws(() => blueskyPosts({ slug: 'demo', source: { platforms: { bluesky: { posts: [] } } } }), /非空列表/);
+});
+
+test('bluesky: a corrupt ledger stops the run rather than re-sending everything', () => {
+  const { root } = blueskyTopic({ source: 'platforms:\n  bluesky:\n    text: "hello"\n' });
+  fs.mkdirSync(path.join(root, 'data', 'published'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'data', 'published', 'bluesky.json'), '{ not json');
+  assert.throws(() => readLedger(root), /读不出来/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('bluesky: a post already in the ledger is skipped, and the dry run says which', () => {
+  const { root } = blueskyTopic({
+    source: [
+      'platforms:',
+      '  bluesky:',
+      '    posts:',
+      '      - id: first',
+      '        text: "already out"',
+      '      - id: second',
+      '        text: "not out yet"',
+      '',
+    ].join('\n'),
+  });
+  fs.mkdirSync(path.join(root, 'data', 'published'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'data', 'published', 'bluesky.json'),
+    `${JSON.stringify({ 'demo#first': { uri: 'at://x', url: 'https://bsky.app/profile/x/post/1', at: '2026-09-24T00:00:00.000Z' } }, null, 2)}\n`,
+  );
+
+  const lines = [];
+  const result = blueskyPublish({ root, config: BS_CONFIG, slugs: ['demo'], dryRun: true, log: (l) => lines.push(String(l)) });
+  assert.equal(result.ok, true);
+  assert.equal(result.results.find((r) => r.id === 'first').skipped, true);
+  assert.equal(result.results.find((r) => r.id === 'second').skipped, false);
+  assert.ok(lines.some((l) => l.includes('demo#first') && l.includes('已发过')), 'the skipped one must say so');
+  assert.ok(lines.some((l) => l.includes('会发 1 条，跳过 1 条')), 'and the total must count both');
+
+  const forced = blueskyPublish({ root, config: BS_CONFIG, slugs: ['demo'], dryRun: true, force: true, log: () => {} });
+  assert.equal(forced.results.every((r) => r.skipped === false), true, '--force re-sends everything');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test('bluesky: the ledger key is the topic and the post id, and nothing else', () => {
+  assert.equal(postKey('passport-photo', 'demo'), 'passport-photo#demo');
 });
 
 // --- wan-i2v (image-to-video) -------------------------------------------------

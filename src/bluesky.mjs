@@ -14,7 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { loadTopic } from './topic.mjs';
-import { joinUrl } from './util.mjs';
+import { isPlainObject, joinUrl } from './util.mjs';
 
 /** Reads are public and need no credential; writes go to the account's own PDS. */
 const APPVIEW = 'https://public.api.bsky.app';
@@ -115,6 +115,27 @@ export function topicLink(slug, config) {
 }
 
 /**
+ * The Bluesky posts a topic carries.
+ *
+ * One by default, from `platforms.bluesky.text`. A topic with more to say — the announcement, then
+ * the demo on its own — writes `platforms.bluesky.posts` instead, and each entry needs an id that
+ * is stable across runs, because that id is what the ledger remembers.
+ */
+export function blueskyPosts(topic) {
+  const block = topic?.source?.platforms?.bluesky ?? {};
+  const list = block.posts;
+  if (list === undefined || list === null) return [{ id: 'main', text: block.text, images: block.images }];
+  if (!Array.isArray(list) || !list.length) throw new Error(`${topic.slug}: platforms.bluesky.posts 必须是非空列表`);
+  const seen = new Set();
+  return list.map((entry, index) => {
+    const id = String(entry?.id ?? '').trim() || `p${index + 1}`;
+    if (seen.has(id)) throw new Error(`${topic.slug}: platforms.bluesky.posts 里 id "${id}" 重复 —— 账本按 id 记，重名的第二条会被当成已发`);
+    seen.add(id);
+    return { id, text: entry?.text, images: entry?.images };
+  });
+}
+
+/**
  * The images a post carries, resolved off disk.
  *
  * An entry may be the bare file name — the alt text is then taken from the topic's own `media:`
@@ -124,15 +145,15 @@ export function topicLink(slug, config) {
  * alt text anywhere is refused here rather than sent. The size cap is checked before the upload
  * rather than after the rejection, and the number of images before anything is read at all.
  */
-export function composeImages(topic, { root, topicsDir = 'topics' } = {}) {
-  const entries = topic?.source?.platforms?.bluesky?.images;
-  if (entries === undefined || entries === null) return [];
-  if (!Array.isArray(entries)) throw new Error(`${topic.slug}: platforms.bluesky.images 必须是列表`);
-  if (entries.length > MAX_IMAGES) {
-    throw new Error(`${topic.slug}: ${entries.length} 张图，Bluesky 一条最多 ${MAX_IMAGES} 张`);
+export function composeImages(topic, { root, topicsDir = 'topics', entries = undefined } = {}) {
+  const list = entries === undefined ? topic?.source?.platforms?.bluesky?.images : entries;
+  if (list === undefined || list === null) return [];
+  if (!Array.isArray(list)) throw new Error(`${topic.slug}: platforms.bluesky.images 必须是列表`);
+  if (list.length > MAX_IMAGES) {
+    throw new Error(`${topic.slug}: ${list.length} 张图，Bluesky 一条最多 ${MAX_IMAGES} 张`);
   }
   const described = new Map((topic?.source?.media ?? []).map((item) => [String(item?.file ?? ''), item]));
-  return entries.map((entry) => {
+  return list.map((entry) => {
     const file = typeof entry === 'string' ? entry : entry?.file;
     if (!file) throw new Error(`${topic.slug}: platforms.bluesky.images 里有一项没有 file`);
     const declared = described.get(file);
@@ -191,9 +212,9 @@ export function linkFacets(text) {
  * reused and the topic's own page appended, so a topic that was never written for Bluesky still
  * publishes something true about itself rather than nothing.
  */
-export function composePost(topic, config, { limit = POST_LIMIT } = {}) {
+export function composePost(topic, config, { text: written = undefined, limit = POST_LIMIT } = {}) {
   const link = topicLink(topic.slug, config);
-  const explicit = topic.source?.platforms?.bluesky?.text;
+  const explicit = written ?? topic.source?.platforms?.bluesky?.text;
   let text = explicit
     ? String(explicit).trim()
     : `${String(topic.source?.platforms?.x?.title ?? topic.source?.title ?? topic.slug).trim()}\n\n${link}`;
@@ -233,77 +254,145 @@ export function postUrl(post) {
 }
 
 /**
+ * What has already gone out, and where.
+ *
+ * Every publisher in this repository can be run twice, and on every other platform the second run
+ * is merely a duplicate to delete. Here it is a second post on a public timeline that nobody can
+ * take back quietly, so the record of what was sent is kept next to the numbers the feedback sweep
+ * reads back — git-ignored for the same reason: it describes the world, not the source.
+ */
+export const PUBLISHED_DIR = 'data/published';
+
+function ledgerFile(root) {
+  return path.join(root ?? '.', PUBLISHED_DIR, 'bluesky.json');
+}
+
+export function readLedger(root) {
+  const file = ledgerFile(root);
+  if (!fs.existsSync(file)) return {};
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    return isPlainObject(parsed) ? parsed : {};
+  } catch {
+    // A corrupt ledger must not be silently treated as empty: that is the one failure that would
+    // re-send everything. Refuse the run and let whoever broke it fix or delete the file.
+    throw new Error(`${PUBLISHED_DIR}/bluesky.json 读不出来 —— 修好或删掉它，否则无法判断哪些已经发过`);
+  }
+}
+
+function writeLedger(root, ledger) {
+  const file = ledgerFile(root);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(ledger, null, 2)}\n`);
+}
+
+/** The key a post is remembered under: the topic plus the id of the post inside it. */
+export function postKey(slug, id) {
+  return `${slug}#${id}`;
+}
+
+/**
  * Publish one or more topics.
  *
  * A session is created once, not per topic, and `--dry-run` prints exactly what would be sent
  * without contacting Bluesky at all — which is how the wording gets reviewed before it is public.
  */
-export function blueskyPublish({ root, config, slugs, identifier, password, pds = DEFAULT_PDS, dryRun = false, log = console.log }) {
+export function blueskyPublish({ root, config, slugs, identifier, password, pds = DEFAULT_PDS, dryRun = false, force = false, log = console.log }) {
   if (!slugs?.length) throw new Error('指定要发布的主题：content publish --bluesky <slug>');
   if (!dryRun && (!identifier || !password)) {
     throw new Error('缺少凭证 —— 把 BLUESKY_HANDLE / BLUESKY_APP_PASSWORD 放进 vault 或环境变量后重试');
   }
 
+  const ledger = readLedger(root);
+  const topicsDir = config.paths?.topics;
   const composed = slugs.map((slug) => {
-    const topic = loadTopic(root, slug, { topicsDir: config.paths?.topics });
-    return { slug, post: composePost(topic, config), images: composeImages(topic, { root, topicsDir: config.paths?.topics }) };
+    const topic = loadTopic(root, slug, { topicsDir });
+    const posts = blueskyPosts(topic).map((post) => ({
+      id: post.id,
+      key: postKey(slug, post.id),
+      text: composePost(topic, config, { text: post.text }),
+      images: composeImages(topic, { root, topicsDir, entries: post.images }),
+      already: ledger[postKey(slug, post.id)] ?? null,
+    }));
+    return { slug, posts };
   });
 
   if (dryRun) {
-    for (const { slug, post, images } of composed) {
-      log(`\n${slug} （${post.length}/${POST_LIMIT} 字符，含 ${post.facets.length} 个链接${images.length ? `，${images.length} 张图` : ''}）`);
-      log('─'.repeat(60));
-      log(post.text);
-      for (const image of images) log(`\n[图] ${image.file} · ${image.mime} · ${image.bytes} 字节\n[alt] ${image.alt}`);
-      log('─'.repeat(60));
+    for (const { slug, posts } of composed) {
+      for (const post of posts) {
+        const mark = post.already && !force ? '已发过，会跳过' : '待发';
+        log(`\n${slug}#${post.id} （${post.text.length}/${POST_LIMIT} 字符，含 ${post.text.facets.length} 个链接${post.images.length ? `，${post.images.length} 张图` : ''}）—— ${mark}`);
+        if (post.already) log(`  已发于 ${post.already.at ?? '?'}：${post.already.url ?? post.already.uri ?? ''}`);
+        log('─'.repeat(60));
+        log(post.text.text);
+        for (const image of post.images) log(`\n[图] ${image.file} · ${image.mime} · ${image.bytes} 字节\n[alt] ${image.alt}`);
+        log('─'.repeat(60));
+      }
     }
-    log('\ndry-run：未联系 Bluesky，未发布。');
-    return { results: composed.map(({ slug }) => ({ slug, dryRun: true })), ok: true };
+    const waiting = composed.flatMap((t) => t.posts).filter((p) => !p.already || force).length;
+    log(`\ndry-run：未联系 Bluesky，未发布。会发 ${waiting} 条，跳过 ${composed.flatMap((t) => t.posts).length - waiting} 条。`);
+    return { results: composed.flatMap(({ slug, posts }) => posts.map((p) => ({ slug, id: p.id, dryRun: true, skipped: Boolean(p.already) && !force }))), ok: true };
   }
 
   const session = createSession({ identifier, password, pds });
   log(`已登录：${session.handle}`);
 
   const results = [];
-  for (const { slug, post, images } of composed) {
-    let blobs = [];
-    try {
-      blobs = images.map((image) => uploadBlob({ session, bytes: fs.readFileSync(image.path), mime: image.mime, pds }));
-      if (images.length) log(`  已上传 ${blobs.length} 张图（${images.map((i) => i.file).join(', ')}）`);
-    } catch (error) {
-      log(`  ! ${slug}: ${error.message}`);
-      results.push({ slug, published: false, reason: error.message });
-      continue;
+  for (const { slug, posts } of composed) {
+    for (const post of posts) {
+      if (post.already && !force) {
+        log(`  · ${slug}#${post.id} 已经发过了，跳过：${post.already.url ?? ''}`);
+        results.push({ slug, id: post.id, published: false, skipped: true, url: post.already.url });
+        continue;
+      }
+      let blobs = [];
+      try {
+        blobs = post.images.map((image) => uploadBlob({ session, bytes: fs.readFileSync(image.path), mime: image.mime, pds }));
+        if (post.images.length) log(`  已上传 ${blobs.length} 张图（${post.images.map((i) => i.file).join(', ')}）`);
+      } catch (error) {
+        log(`  ! ${slug}#${post.id}: ${error.message}`);
+        results.push({ slug, id: post.id, published: false, reason: error.message });
+        continue;
+      }
+      const embed = imageEmbed(post.images, blobs);
+      const record = {
+        $type: 'app.bsky.feed.post',
+        text: post.text.text,
+        langs: [config?.site?.language ?? 'en'],
+        createdAt: new Date().toISOString(),
+        ...(post.text.facets.length ? { facets: post.text.facets } : {}),
+        ...(embed ? { embed } : {}),
+      };
+      const { status, json } = curlJson(`${pds}/xrpc/com.atproto.repo.createRecord`, {
+        method: 'POST',
+        token: session.accessJwt,
+        body: { repo: session.did, collection: 'app.bsky.feed.post', record },
+      });
+      if (status !== 200 || !json?.uri) {
+        log(`  ! ${slug}#${post.id} 发布失败（HTTP ${status}）：${String(json?.message ?? '').slice(0, 200)}`);
+        results.push({ slug, id: post.id, published: false, status });
+        continue;
+      }
+      const check = readBack(json.uri, { expectImages: post.images.length });
+      log(check.verified ? `  ✓ ${slug}#${post.id} 已发布并回读确认：${check.url}` : `  ! ${check.reason}`);
+      if (check.verified && check.images !== check.imagesExpected) {
+        log(`  ! 帖子发出去了，但回读到 ${check.images} 张图（应是 ${check.imagesExpected} 张）—— 图没有进 embed`);
+      }
+      // Recorded before the results are returned: a post that is out is out, even if the process
+      // dies before it finishes reporting.
+      ledger[post.key] = { uri: json.uri, url: check.url ?? null, at: new Date().toISOString(), images: post.images.length };
+      writeLedger(root, ledger);
+      results.push({ slug, id: post.id, published: true, uri: json.uri, ...check });
     }
-    const embed = imageEmbed(images, blobs);
-    const record = {
-      $type: 'app.bsky.feed.post',
-      text: post.text,
-      langs: [config?.site?.language ?? 'en'],
-      createdAt: new Date().toISOString(),
-      ...(post.facets.length ? { facets: post.facets } : {}),
-      ...(embed ? { embed } : {}),
-    };
-    const { status, json } = curlJson(`${pds}/xrpc/com.atproto.repo.createRecord`, {
-      method: 'POST',
-      token: session.accessJwt,
-      body: { repo: session.did, collection: 'app.bsky.feed.post', record },
-    });
-    if (status !== 200 || !json?.uri) {
-      log(`  ! 发布失败（HTTP ${status}）：${String(json?.message ?? '').slice(0, 200)}`);
-      results.push({ slug, published: false, status });
-      continue;
-    }
-    const check = readBack(json.uri, { expectImages: images.length });
-    log(check.verified ? `  ✓ 已发布并回读确认：${check.url}` : `  ! ${check.reason}`);
-    if (check.verified && check.images !== check.imagesExpected) {
-      log(`  ! 帖子发出去了，但回读到 ${check.images} 张图（应是 ${check.imagesExpected} 张）—— 图没有进 embed`);
-    }
-    results.push({ slug, published: true, uri: json.uri, ...check });
   }
 
-  const ok = results.every((r) => r.published && r.verified);
+  const sent = results.filter((r) => r.published && r.verified);
+  const skipped = results.filter((r) => r.skipped);
+  const failed = results.filter((r) => !r.published && !r.skipped);
+  const ok = failed.length === 0;
   log('');
-  log(ok ? `Bluesky 发布完成：${results.length} 条` : 'Bluesky 发布未全部通过回读确认');
+  log(ok
+    ? `Bluesky 发布完成：发出 ${sent.length} 条，跳过 ${skipped.length} 条已经发过的`
+    : `Bluesky 发布未全部通过回读确认：发出 ${sent.length}，跳过 ${skipped.length}，失败 ${failed.length}`);
   return { results, ok };
 }
