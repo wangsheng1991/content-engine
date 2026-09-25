@@ -71,6 +71,8 @@ The reason is plain: **one source is not evidence, it is a claim.** The same fig
 
 All of the above is about checking figures. The tool's half has one rule: **the photo does not go to a server.**
 
+![The tool in use: choose the spec → align the head guides → export the printable sheet](assets/demo.gif)
+
 The file is read into a canvas through `FileReader`, cropped to the chosen spec, annotated with the head-height guide lines so you can check them yourself, laid out into a printable sheet, and downloaded directly with `canvas.toBlob`. No upload, no backend on this path, no account.
 
 You can open the page, disconnect from the network, and it still works.
