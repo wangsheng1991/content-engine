@@ -96,3 +96,32 @@ topics/<slug>/slides.md
   音色名即可，接口已经在那儿了。
 - **不做自动配乐、转场、字幕**：现在没有证据说明需要它们；轮播图 + 旁白已经能覆盖
   「把一篇长文讲一遍」这个真实需求。
+
+## 六、帖子里的界面 GIF：2026-09-25 定为默认
+
+要求：**每一篇要推广的主题，正文里都要有一段真实界面的动态画面**，位置尽量靠前。静态截图次之，AI 生成的插画不能顶替——读者要的是「这软件长什么样、点下去会发生什么」，不是气氛图。
+
+为什么是 GIF：Dev.to 收不了视频文件（发文接口只吃 markdown，唯一的视频端点是只读的 `GET /api/videos`），而 GIF 就是图片，能直接进正文；它在手机上也自动播放、不看也能循环。
+
+做法（本机实测，别重新发明）：
+
+1. **录**：Playwright 驱动**系统 Chrome**。本机 `ms-playwright` 里只有 1161，Playwright 自己要 1243，所以必须
+   `chromium.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' })`，
+   不要走 `npx playwright install`。
+2. **逐帧**：`page.screenshot()` 存 PNG，滚动用 `page.evaluate(() => window.scrollTo(0, y))`，每步间隔 45ms；
+   首尾各多补 3–5 张相同的帧当停顿，否则开头结尾一闪而过。
+3. **合成**：ffmpeg 两遍调色板法，别直接转。
+   ```
+   ffmpeg -framerate 13 -i g%03d.png -vf "scale=560:-1:flags=lanczos,split[s0][s1];\
+   [s0]palettegen=max_colors=48:stats_mode=diff[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5" -loop 0 out.gif
+   ```
+4. **体积预算 ≤ 1 MB**。GIF 是逐帧差分，照片墙压不动：同一页滚 1750px 实测 4.9 MB，
+   只滚标题到统计卡（620px）就是 888 KB。**只录文字、表格、卡片那一段**，别滚进大图区。
+5. **落地**：放 `topics/<slug>/assets/<name>.gif`，正文写 `![说明](assets/<name>.gif)`——
+   跨贴时 `absolutizeAssets` 会把 `assets/` 改写成站点绝对地址，站内站外同一份源。
+6. **Dev.to 的行为**（已实测，别猜）：它会把图**收走重传**到自己的 S3，再经 Cloudinary 代理输出。
+   GIF 进去、animated WebP 出来，**动画保留**（原件 66 帧 → 线上 36 帧，仍是动画），
+   读者实际下载 229 KB 而不是 939 KB——我们的站点不再被每次浏览各拉一次大文件。
+
+现状：`passport-photo`（工具实操 `demo.gif`）、`qwen-image-2-1-bench`（报告页实录 `report.gif`）已按此办理；
+`ml-sharp` 与 `wan-i2v-first-frame` 仍是静态图，还没有对应的可录界面。
