@@ -60,6 +60,12 @@ links:
     url: https://wangsheng1991.github.io/qwen-image-2.1-bench/
   - label: "复现脚本"
     url: https://github.com/wangsheng1991/qwen-image-2.1-bench/tree/main/scripts
+media:
+  - file: assets/report.gif
+    kind: gif
+    caption: "报告页实录：从标题滚过四个结论数字到九个领域表，约 6 秒"
+    caption_en: "The live report page: from the headline, past the four summary numbers, to the nine-domain table — about 6 seconds"
+    alt: "A screen recording of the benchmark report page scrolling from its headline through four summary cards to the nine-domain table."
 platforms:
   devto:
     tags: [ai, machinelearning, image, benchmark]
