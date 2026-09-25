@@ -43,7 +43,14 @@ function curlJson(url, { method = 'GET', body, apiKey, timeout = 90 } = {}) {
   try {
     out = execFileSync('curl', args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (error) {
-    throw new Error(`无法连接 dev.to：${String(error.message).split('\n')[0]}`);
+    // Node 给 execFileSync 失败拼的 message 里带着**整条命令行**，而 api-key 就在里面 ——
+    // 直接把 error.message 抛出去等于把密钥写进日志。curl 自己的 stderr 才是能露出的那部分。
+    const detail = String(error.stderr ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .pop();
+    throw new Error(`无法连接 dev.to：${detail || 'curl 未给出错误文本'}`);
   }
   const split = out.lastIndexOf('\n__HTTP__');
   if (split === -1) throw new Error('dev.to 没有返回可解析的响应');

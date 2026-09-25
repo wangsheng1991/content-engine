@@ -61,6 +61,8 @@ links:
   - label: "复现脚本"
     url: https://github.com/wangsheng1991/qwen-image-2.1-bench/tree/main/scripts
 platforms:
+  devto:
+    tags: [ai, machinelearning, image, benchmark]
   bluesky:
     text: |
       Ran Qwen-Image-2.1, SenseNova-U1.5 and an INT4 4-step FLUX.2-klein on the same machine against verbatim GenEval/DPG/LongText prompts, same seed. Qwen went 4/7 on compositional prompts where both others went 7/7. Then we changed only the prompts — rewritten into enhancer-style long descriptions, same resolution, same seed — and both failures passed.
