@@ -12,6 +12,8 @@ So I did something deliberately dumb: **every number carries the sentence it app
 
 ![The tool: choose a specification → upload and align → adjust the crop → download](assets/demo-still.png)
 
+{% embed https://bsky.app/profile/wangsheng199.bsky.social/post/3mwdlyx3kn52r %}
+
 ## What a row actually is
 
 A row is not "3 × 4 = 30 × 40 mm". It is:

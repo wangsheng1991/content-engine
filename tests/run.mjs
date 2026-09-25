@@ -438,6 +438,16 @@ test('yaml: rejects tabs and anchors with a file:line error', () => {
 });
 
 // --- markdown ---------------------------------------------------------------
+test('markdown: a Dev.to liquid tag never reaches the site, and survives for the cross-post', () => {
+  const source = 'A paragraph.\n\n{% embed https://bsky.app/profile/x/post/1 %}\n\n## Next\n\nMore.';
+  const html = renderMarkdown(source);
+  assert.equal(html.includes('{%'), false, 'the site has no notion of a liquid tag — it must not be printed');
+  assert.match(html, /<h2[^>]*>Next<\/h2>/, 'and the article around the tag still renders');
+  assert.equal(toPlainText(source).includes('{%'), false, 'nor may it leak into a word count or a preview');
+  // The cross-post is the one reader that does understand the tag, so the source keeps it.
+  assert.equal(stripFrontMatter(source).includes('{% embed https://bsky.app/profile/x/post/1 %}'), true);
+});
+
 test('markdown: headings get slug ids and code fences are escaped', () => {
   const html = renderMarkdown('# Hello World\n\n```js\nconst a = 1 < 2;\n```\n');
   assert.match(html, /<h1 id="hello-world">Hello World<\/h1>/);

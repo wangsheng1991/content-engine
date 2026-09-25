@@ -265,6 +265,27 @@ PDS 的 DID 从登录响应的 `didDoc` 里取 `#atproto_pds` 端点，再问一
 1080 × 1440 写成 `3:4`，`aspectRatioOf()` 用 gcd 约分；给了像素尺寸会得到一个形状不对但不报错的播放器。
 比例由 `ffprobe` 读，读不到就不写这个字段（不致命）。
 
+### 8.4 长文里嵌那条视频：`{% embed %}`（2026-09-25 实测）
+
+Dev.to 对 `{% embed %}` 是**白名单制**：Bluesky 帖子 URL 认（渲染出 `embed.bsky.app` 的 iframe，
+里面是真的 `<video>` 带 m3u8 和海报图），我们自己的站点 URL 不认；`{% link %}` 只认 Dev.to 站内文章；
+裸链接独占一行只会变成一条普通 `<a>`，没有预览卡。所以顺序是：
+
+1. `content publish --bluesky <slug>` 把视频发出去，拿到帖子的公开链接
+2. 把那行 `{% embed <帖子URL> %}` 写进 `topics/<slug>/article.md`（英文版同理写 `article.en.md`），
+   放在那张界面截图下面 —— 需要宣传的页面正文里要有真实画面，视频比静图强
+3. `content build` 后 `content publish --devto <slug>`
+
+**站点不受影响**：`src/markdown.mjs` 的 `stripLiquidTags()` 会把独占一行的 `{% … %}` 丢掉 ——
+这个渲染器不认识 liquid，不丢的话页面上会多出一段 `{% embed … %}` 的字面文字。
+所以文章仍然只有一份源文件，只有看得懂这个标签的平台才看得到它（`toPlainText()` 也走同一个过滤器，
+免得它漏进字数统计或社交预览）。
+
+已发布的文章要补这一行，得用 `PUT /api/articles/<id>`：`content publish --devto` 本身只走 `POST`
+（这是故意的 —— 免得手滑发第二篇）。PUT 时把 `title` / `canonical_url` / `main_image` / `tags`
+一起带上，否则会被清空。`passport-photo` 那篇已经这样补过，回读 `body_html` 里
+`embed.bsky.app/embed/…/app.bsky.feed.post/3mwdlyx3kn52r` 的 iframe 在位。
+
 ---
 
 ## 9. 自托管的真实代价（对 §0 第 2 条的重要修正）

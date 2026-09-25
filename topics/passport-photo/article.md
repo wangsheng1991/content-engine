@@ -12,6 +12,8 @@
 
 ![工具界面：选规格 → 上传对齐 → 调裁切 → 下载排版页](assets/demo-still.png)
 
+{% embed https://bsky.app/profile/wangsheng199.bsky.social/post/3mwdlyx3kn52r %}
+
 ## 一行规格长什么样
 
 表里的一行不是「3 × 4 = 30 × 40 mm」这么简单，它是：

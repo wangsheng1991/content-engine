@@ -11,7 +11,7 @@ const TABLE_ROW = /^\s*\|.*\|\s*$/;
 
 /** Render markdown to an HTML fragment. */
 export function renderMarkdown(source) {
-  const lines = stripComments(String(source ?? '')).replace(/\r\n?/g, '\n').split('\n');
+  const lines = stripLiquidTags(stripComments(String(source ?? ''))).replace(/\r\n?/g, '\n').split('\n');
   const out = [];
   let i = 0;
 
@@ -162,6 +162,18 @@ function stripComments(source) {
   return source.replace(/<!--[\s\S]*?-->/g, '');
 }
 
+/**
+ * Dev.to's liquid tags are not part of our own copy of an article.
+ *
+ * `{% embed <url> %}` is how a cross-post carries a video the platform hosts itself — Dev.to accepts
+ * a short whitelist of hosts and plays them in an iframe. This renderer has no such notion and would
+ * print the tag as a paragraph, so the line is dropped here: the article stays one file, and only
+ * the platform that understands the tag ever sees it.
+ */
+function stripLiquidTags(source) {
+  return String(source).replace(/^[ \t]*\{%[^\n]*%\}[ \t]*\n?/gm, '');
+}
+
 /** Inline formatting; HTML is escaped first, code spans are protected. */
 export function inline(text) {
   const codes = [];
@@ -212,7 +224,7 @@ export function extractHeadings(source) {
 
 /** Rough plain-text rendering, for word counts and social previews. */
 export function toPlainText(source) {
-  return String(source ?? '')
+  return stripLiquidTags(String(source ?? ''))
     .replace(FENCE_GLOBAL, '')
     .replace(/^#{1,6}\s+/gm, '')
     .replace(/[*_`>~]/g, '')
