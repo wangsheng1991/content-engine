@@ -27,12 +27,36 @@ export const POST_LIMIT = 300;
 export const MAX_IMAGES = 4;
 export const MAX_IMAGE_BYTES = 1_000_000;
 
+/**
+ * Video is not an image with a different extension: it is a separate service.
+ *
+ * The bytes go to `app.bsky.video`, which resolves to its own host and its own DID, and the token
+ * that authorises the upload is minted by the PDS for that DID specifically. Afterwards the video
+ * is processed asynchronously, so the embed can only be built once a job reports its blob.
+ */
+export const VIDEO_SERVICE = { did: 'did:web:video.bsky.app', url: 'https://video.bsky.app' };
+
+/** `app.bsky.embed.video` allows up to 300 MB (100 MB before that). */
+export const MAX_VIDEO_BYTES = 300_000_000;
+
+const VIDEO_MIME = { mp4: 'video/mp4' };
+
 const IMAGE_MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
 
 const SEGMENTER = new Intl.Segmenter('en', { granularity: 'grapheme' });
 
 export function graphemeLength(text) {
   return [...SEGMENTER.segment(text)].length;
+}
+
+/** The last line curl wrote to stderr — never `error.message`, which carries the whole argv. */
+function curlDetail(error) {
+  const detail = String(error?.stderr ?? '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .pop();
+  return detail || 'curl 未给出错误文本';
 }
 
 function curlJson(url, { method = 'GET', body, token, timeout = 60 } = {}) {
@@ -45,7 +69,8 @@ function curlJson(url, { method = 'GET', body, token, timeout = 60 } = {}) {
   try {
     out = execFileSync('curl', args, { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (error) {
-    throw new Error(`无法连接 ${new URL(url).host}：${String(error.message).split('\n')[0]}`);
+    // Node 拼的 message 带着整条命令行，而 Authorization 头就在里面 —— 只能露 curl 自己的文本。
+    throw new Error(`无法连接 ${new URL(url).host}：${curlDetail(error)}`);
   }
   const split = out.lastIndexOf('\n__HTTP__');
   if (split === -1) throw new Error(`${new URL(url).host} 没有返回可解析的响应`);
@@ -61,7 +86,8 @@ function curlJson(url, { method = 'GET', body, token, timeout = 60 } = {}) {
 }
 
 /** Never includes the message body of a failed login — it can echo the password back. */
-export function createSession({ identifier, password, pds = DEFAULT_PDS }) {  if (!identifier || !password) throw new Error('missing BLUESKY_HANDLE / BLUESKY_APP_PASSWORD');
+export function createSession({ identifier, password, pds = DEFAULT_PDS }) {
+  if (!identifier || !password) throw new Error('missing BLUESKY_HANDLE / BLUESKY_APP_PASSWORD');
   const { status, json } = curlJson(`${pds}/xrpc/com.atproto.server.createSession`, {
     method: 'POST',
     body: { identifier, password },
@@ -69,7 +95,62 @@ export function createSession({ identifier, password, pds = DEFAULT_PDS }) {  if
   if (status !== 200 || !json?.accessJwt) {
     throw new Error(`Bluesky 登录失败（HTTP ${status}）—— 检查 handle 与 app password`);
   }
-  return { accessJwt: json.accessJwt, did: json.did, handle: json.handle };
+  return {
+    accessJwt: json.accessJwt,
+    did: json.did,
+    handle: json.handle,
+    email: json.email,
+    emailConfirmed: json.emailConfirmed,
+    // The PDS this account actually lives on. The video service needs it by name (see pdsDidOf),
+    // and the login response is the one place it arrives without another round trip.
+    pdsEndpoint: pdsServiceOf(json.didDoc),
+  };
+}
+
+/** The `#atproto_pds` endpoint out of a DID document, however that document was obtained. */
+function pdsServiceOf(didDoc) {
+  const service = (didDoc?.service ?? []).find((entry) => entry?.id === '#atproto_pds');
+  return service?.serviceEndpoint ? String(service.serviceEndpoint).replace(/\/+$/, '') : undefined;
+}
+
+/**
+ * Where the account's DID document lives: a `did:plc` is published by the PLC directory, a
+ * `did:web` by the host it names.
+ */
+function didDocumentUrl(did) {
+  if (did.startsWith('did:plc:')) return `https://plc.directory/${did}`;
+  if (did.startsWith('did:web:')) return `https://${did.slice('did:web:'.length).replace(/:/g, '/')}/.well-known/did.json`;
+  return undefined;
+}
+
+/**
+ * The DID of the account's own PDS — which is *not* the same thing as the service being called.
+ *
+ * The video host refuses a token addressed to itself. Its own words: `invalid token audience
+ * "did:web:video.bsky.app", should be the user's PDS DID "did:web:discina.us-west.host.bsky.network"`,
+ * and then, once the audience is right, `invalid token lexicon method "app.bsky.video.uploadVideo",
+ * should be com.atproto.repo.uploadBlob` — because the processed video is written back as a blob on
+ * that PDS, so the token has to authorise exactly that write. Both facts were read off the service,
+ * not guessed; neither is in the lexicon.
+ */
+export function pdsDidOf({ session }) {
+  if (!session?.did) throw new Error('没有账号 DID —— 先登录再上传视频');
+  if (session.pdsDid) return session.pdsDid;
+  let endpoint = session.pdsEndpoint;
+  if (!endpoint) {
+    const url = didDocumentUrl(session.did);
+    if (url) {
+      const { status, json } = curlJson(url, { timeout: 30 });
+      if (status === 200) endpoint = pdsServiceOf(json);
+    }
+  }
+  if (!endpoint) throw new Error(`查不到 ${session.did} 的 PDS 端点 —— 视频要发到那个 PDS 上，地址必须知道`);
+  const { status, json } = curlJson(`${endpoint}/xrpc/com.atproto.server.describeServer`, { timeout: 30 });
+  // Every PDS in this network is `did:web:<host>`, so the host is a sound last resort.
+  const did = status === 200 && json?.did ? String(json.did) : `did:web:${new URL(endpoint).host}`;
+  session.pdsEndpoint = endpoint;
+  session.pdsDid = did;
+  return did;
 }
 
 /**
@@ -92,7 +173,7 @@ export function uploadBlob({ session, bytes, mime, pds = DEFAULT_PDS, timeout = 
   try {
     out = execFileSync('curl', args, { input: bytes, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] });
   } catch (error) {
-    throw new Error(`上传图片失败：${String(error.message).split('\n')[0]}`);
+    throw new Error(`上传图片失败：${curlDetail(error)}`);
   }
   const split = out.lastIndexOf('\n__HTTP__');
   if (split === -1) throw new Error('上传图片时 PDS 没有返回可解析的响应');
@@ -124,14 +205,14 @@ export function topicLink(slug, config) {
 export function blueskyPosts(topic) {
   const block = topic?.source?.platforms?.bluesky ?? {};
   const list = block.posts;
-  if (list === undefined || list === null) return [{ id: 'main', text: block.text, images: block.images }];
+  if (list === undefined || list === null) return [{ id: 'main', text: block.text, images: block.images, video: block.video }];
   if (!Array.isArray(list) || !list.length) throw new Error(`${topic.slug}: platforms.bluesky.posts 必须是非空列表`);
   const seen = new Set();
   return list.map((entry, index) => {
     const id = String(entry?.id ?? '').trim() || `p${index + 1}`;
     if (seen.has(id)) throw new Error(`${topic.slug}: platforms.bluesky.posts 里 id "${id}" 重复 —— 账本按 id 记，重名的第二条会被当成已发`);
     seen.add(id);
-    return { id, text: entry?.text, images: entry?.images };
+    return { id, text: entry?.text, images: entry?.images, video: entry?.video };
   });
 }
 
@@ -185,6 +266,180 @@ export function imageEmbed(images, blobs) {
 }
 
 /**
+ * A token the PDS mints on this account's behalf for *another* service.
+ *
+ * The PDS's own access token is not accepted by the video host: the token has to name that service
+ * as its audience, and the one method it may be used for. This is the whole difference between a
+ * call that works and a 401 that looks like a credential problem.
+ */
+export function getServiceAuth({ session, aud, lxm, pds = DEFAULT_PDS }) {
+  const query = new URLSearchParams({ aud });
+  if (lxm) query.set('lxm', lxm);
+  const { status, json } = curlJson(`${pds}/xrpc/com.atproto.server.getServiceAuth?${query}`, {
+    token: session.accessJwt,
+  });
+  if (status !== 200 || !json?.token) {
+    throw new Error(`拿不到给视频服务的授权（HTTP ${status}）：${String(json?.message ?? '').slice(0, 200)}`);
+  }
+  return json.token;
+}
+
+/**
+ * The lexeme both video calls must carry. It is not the method being called — see pdsDidOf.
+ */
+export const VIDEO_LXM = 'com.atproto.repo.uploadBlob';
+
+/**
+ * Send the file to the video service. The answer is a job, not a blob: the mp4 is re-encoded and
+ * stored on the PDS afterwards, so a successful upload means "accepted", not "ready".
+ *
+ * `name` is not decoration: without a name (or a DID) in the query the service answers `missing name
+ * or did` before it looks at the bytes.
+ */
+export function uploadVideo({ session, bytes, name, mime = 'video/mp4', pds = DEFAULT_PDS, service = VIDEO_SERVICE, timeout = 600 }) {
+  const token = getServiceAuth({ session, aud: pdsDidOf({ session }), lxm: VIDEO_LXM, pds });
+  const query = new URLSearchParams(name ? { name } : { did: session.did });
+  const args = [
+    '-sS', '-X', 'POST', '--noproxy', '127.0.0.1,localhost', '--max-time', String(timeout),
+    '-H', `Authorization: Bearer ${token}`,
+    '-H', `Content-Type: ${mime}`,
+    '--data-binary', '@-',
+    '-w', '\n__HTTP__%{http_code}',
+    `${service.url}/xrpc/app.bsky.video.uploadVideo?${query}`,
+  ];
+  let out;
+  try {
+    out = execFileSync('curl', args, { input: bytes, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (error) {
+    throw new Error(`上传视频失败：${curlDetail(error)}`);
+  }
+  const split = out.lastIndexOf('\n__HTTP__');
+  if (split === -1) throw new Error('上传视频时视频服务没有返回可解析的响应');
+  const status = Number(out.slice(split + 9).trim());
+  let json = null;
+  try {
+    json = JSON.parse(out.slice(0, split) || 'null');
+  } catch {
+    json = null;
+  }
+  const job = json?.jobStatus ?? json;
+  if (status !== 200 || !job?.jobId) {
+    const reason = String(job?.error ?? json?.message ?? '').slice(0, 200);
+    throw new Error(`上传视频失败（HTTP ${status}）：${reason}${reason === 'unconfirmed_email' ? ' —— Bluesky 要求先确认账号邮箱才能传视频，去设置里确认一下' : ''}`);
+  }
+  return job;
+}
+
+/** Where a job got to. `state` is a small enum; anything unrecognised simply means "still going". */
+export function videoJob({ session, jobId, pds = DEFAULT_PDS, service = VIDEO_SERVICE }) {
+  const token = getServiceAuth({ session, aud: pdsDidOf({ session }), lxm: VIDEO_LXM, pds });
+  const url = `${service.url}/xrpc/app.bsky.video.getJobStatus?jobId=${encodeURIComponent(jobId)}`;
+  const { status, json } = curlJson(url, { token });
+  if (status !== 200 || !json?.jobStatus) {
+    throw new Error(`查不到视频处理状态（HTTP ${status}）：${String(json?.message ?? json?.error ?? '').slice(0, 200)}`);
+  }
+  return json.jobStatus;
+}
+
+export const VIDEO_DONE = 'JOB_STATE_COMPLETED';
+export const VIDEO_FAILED = 'JOB_STATE_FAILED';
+
+/**
+ * Poll until the job hands back a blob. Processing is fast for a short clip but not instant, and it
+ * is not a spinner for the human to guess at: the state and progress are printed as they change.
+ */
+export function waitForVideo({ session, jobId, pds = DEFAULT_PDS, service = VIDEO_SERVICE, timeoutSeconds = 300, intervalSeconds = 3, log = () => {} }) {
+  const deadline = Date.now() + timeoutSeconds * 1000;
+  let last = '';
+  for (;;) {
+    const job = videoJob({ session, jobId, pds, service });
+    const state = String(job.state ?? '');
+    if (state === VIDEO_DONE && job.blob) return job;
+    if (state === VIDEO_FAILED) {
+      throw new Error(`视频处理失败：${[job.failureCode, job.message ?? job.error].filter(Boolean).join(' ') || '未给原因'}`);
+    }
+    const line = `${state || '未知状态'}${job.progress ? ` ${job.progress}%` : ''}`;
+    if (line !== last) {
+      log(`  … 视频处理中：${line}`);
+      last = line;
+    }
+    if (Date.now() >= deadline) throw new Error(`视频处理 ${timeoutSeconds} 秒仍未结束（最后状态 ${state || '未知'}）`);
+    execFileSync('sleep', [String(intervalSeconds)]);
+  }
+}
+
+/** The embed a video post carries. Alt text is not optional here either. */
+export function videoEmbed(video, blob) {
+  return {
+    $type: 'app.bsky.embed.video',
+    video: blob,
+    ...(video.alt ? { alt: video.alt } : {}),
+    ...(video.aspectRatio ? { aspectRatio: video.aspectRatio } : {}),
+  };
+}
+
+/**
+ * `app.bsky.embed.video` wants the ratio, not the pixel size: it is `{width, height}` as small
+ * integers, and a 1080×1920 clip belongs there as 9:16. Feeding it pixel dimensions produces a
+ * silently mis-shaped player, so the numbers are reduced here.
+ */
+export function aspectRatioOf(width, height) {
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  const w = Math.round(Number(width));
+  const h = Math.round(Number(height));
+  if (!(w > 0) || !(h > 0)) return undefined;
+  const d = gcd(w, h) || 1;
+  const reduced = { width: w / d, height: h / d };
+  // Beyond a few dozen steps the ratio stops meaning anything to a player.
+  if (reduced.width > 99 || reduced.height > 99) return { width: Number((w / h).toFixed(4)), height: 1 };
+  return reduced;
+}
+
+/** Video dimensions via ffprobe; absent when ffprobe is not installed, which is not fatal. */
+export function videoAspectRatio(file) {
+  try {
+    const out = execFileSync(
+      'ffprobe',
+      ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0:s=x', file],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+    ).trim();
+    const [width, height] = out.split('x').map(Number);
+    return aspectRatioOf(width, height);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The video a post carries, resolved off disk — the same rules as an image: the file has to exist,
+ * it has to have alt text, and it has to be a format the service accepts.
+ */
+export function composeVideo(topic, { root, topicsDir = 'topics', entry = undefined } = {}) {
+  const list = entry === undefined ? topic?.source?.platforms?.bluesky?.video : entry;
+  if (list === undefined || list === null) return null;
+  const item = typeof list === 'string' ? { file: list } : list;
+  const file = String(item?.file ?? '').trim();
+  if (!file) throw new Error(`${topic.slug}: platforms.bluesky.video 里没有 file`);
+  const described = new Map((topic?.source?.media ?? []).map((entry2) => [String(entry2?.file ?? ''), entry2]));
+  const alt = String(
+    (typeof list === 'string' ? '' : item?.alt) || described.get(file)?.alt || ''
+  ).trim();
+  if (!alt) {
+    throw new Error(`${topic.slug}: ${file} 没有 alt —— 在 media: 里给它写一句，或在这一项里直接写；没有替代文字的视频，对读屏的人等于不存在`);
+  }
+  const abs = path.join(root, topicsDir, topic.slug, file);
+  if (!fs.existsSync(abs)) throw new Error(`${topic.slug}: 找不到 ${file} —— 先把它放进 assets/`);
+  const bytes = fs.statSync(abs).size;
+  if (bytes > MAX_VIDEO_BYTES) {
+    throw new Error(`${topic.slug}: ${file} 有 ${bytes} 字节，超过 Bluesky 视频的 ${MAX_VIDEO_BYTES} —— 压一版再发`);
+  }
+  const ext = path.extname(abs).slice(1).toLowerCase();
+  const mime = VIDEO_MIME[ext];
+  if (!mime) throw new Error(`${topic.slug}: 视频只收 mp4，这个是 .${ext}`);
+  return { file, path: abs, alt, mime, bytes, aspectRatio: videoAspectRatio(abs) };
+}
+
+/**
  * Where a link sits inside a post, in the UTF-8 byte offsets Bluesky's facet format uses. Getting
  * this wrong is the difference between a clickable link and a wall of text, and it is invisible
  * until a human looks at the result — hence the tests.
@@ -233,13 +488,25 @@ export function composePost(topic, config, { text: written = undefined, limit = 
  * Read the post back from the public appview: a write that cannot be seen is not a publish. The
  * images are read back for the same reason they are sent — a blob that uploaded fine and a record
  * that dropped it looks exactly like success from the sending side.
+ *
+ * A video is read back too, and it is the case that needs it most: the upload is a job, the job
+ * hands back a blob asynchronously, and a record built from a blob that was never finished would be
+ * accepted by the PDS and then play as nothing.
  */
-function readBack(uri, { appview = APPVIEW, attempts = 5, expectImages = 0 } = {}) {
+function readBack(uri, { appview = APPVIEW, attempts = 5, expectImages = 0, expectVideo = false } = {}) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const { status, json } = curlJson(`${appview}/xrpc/app.bsky.feed.getPostThread?uri=${encodeURIComponent(uri)}`, { timeout: 30 });
     const post = json?.thread?.post;
     if (status === 200 && post?.uri) {
-      return { verified: true, url: postUrl(post), images: (post.record?.embed?.images ?? []).length, imagesExpected: expectImages };
+      const embed = post.record?.embed ?? {};
+      return {
+        verified: true,
+        url: postUrl(post),
+        images: (embed.images ?? []).length,
+        imagesExpected: expectImages,
+        video: embed.$type === 'app.bsky.embed.video',
+        videoExpected: expectVideo,
+      };
     }
     if (attempt < attempts) execFileSync('sleep', ['2']);
   }
@@ -307,13 +574,24 @@ export function blueskyPublish({ root, config, slugs, identifier, password, pds 
   const topicsDir = config.paths?.topics;
   const composed = slugs.map((slug) => {
     const topic = loadTopic(root, slug, { topicsDir });
-    const posts = blueskyPosts(topic).map((post) => ({
-      id: post.id,
-      key: postKey(slug, post.id),
-      text: composePost(topic, config, { text: post.text }),
-      images: composeImages(topic, { root, topicsDir, entries: post.images }),
-      already: ledger[postKey(slug, post.id)] ?? null,
-    }));
+    const posts = blueskyPosts(topic).map((post) => {
+      const key = postKey(slug, post.id);
+      const images = composeImages(topic, { root, topicsDir, entries: post.images });
+      const video = composeVideo(topic, { root, topicsDir, entry: post.video });
+      // One embed per record: `app.bsky.feed.post` carries a single embed, so a post with both would
+      // silently lose one of them.
+      if (video && images.length) {
+        throw new Error(`${topic.slug}#${post.id}: 一条帖子只能带一个 embed —— 图片和视频二选一`);
+      }
+      return {
+        id: post.id,
+        key,
+        text: composePost(topic, config, { text: post.text }),
+        images,
+        video,
+        already: ledger[key] ?? null,
+      };
+    });
     return { slug, posts };
   });
 
@@ -321,11 +599,19 @@ export function blueskyPublish({ root, config, slugs, identifier, password, pds 
     for (const { slug, posts } of composed) {
       for (const post of posts) {
         const mark = post.already && !force ? '已发过，会跳过' : '待发';
-        log(`\n${slug}#${post.id} （${post.text.length}/${POST_LIMIT} 字符，含 ${post.text.facets.length} 个链接${post.images.length ? `，${post.images.length} 张图` : ''}）—— ${mark}`);
+        const media = [
+          post.images.length ? `${post.images.length} 张图` : '',
+          post.video ? '1 段视频' : '',
+        ].filter(Boolean).join('，');
+        log(`\n${slug}#${post.id} （${post.text.length}/${POST_LIMIT} 字符，含 ${post.text.facets.length} 个链接${media ? `，${media}` : ''}）—— ${mark}`);
         if (post.already) log(`  已发于 ${post.already.at ?? '?'}：${post.already.url ?? post.already.uri ?? ''}`);
         log('─'.repeat(60));
         log(post.text.text);
         for (const image of post.images) log(`\n[图] ${image.file} · ${image.mime} · ${image.bytes} 字节\n[alt] ${image.alt}`);
+        if (post.video) {
+          const ratio = post.video.aspectRatio ? `${post.video.aspectRatio.width}:${post.video.aspectRatio.height}` : '未知画幅';
+          log(`\n[视频] ${post.video.file} · ${post.video.mime} · ${post.video.bytes} 字节 · ${ratio}\n[alt] ${post.video.alt}`);
+        }
         log('─'.repeat(60));
       }
     }
@@ -345,16 +631,35 @@ export function blueskyPublish({ root, config, slugs, identifier, password, pds 
         results.push({ slug, id: post.id, published: false, skipped: true, url: post.already.url });
         continue;
       }
+      // Checked before the file is read, not after: the upload would be refused anyway, and the
+      // refusal costs a full round trip with the whole mp4 in it.
+      if (post.video && session.emailConfirmed === false) {
+        log(`  ! ${slug}#${post.id}: 账号邮箱还没确认（${session.email ?? '?'}），Bluesky 不收视频上传 —— 去设置里确认邮箱后重跑`);
+        results.push({ slug, id: post.id, published: false, reason: 'unconfirmed_email' });
+        continue;
+      }
       let blobs = [];
+      let videoBlob = null;
       try {
         blobs = post.images.map((image) => uploadBlob({ session, bytes: fs.readFileSync(image.path), mime: image.mime, pds }));
         if (post.images.length) log(`  已上传 ${blobs.length} 张图（${post.images.map((i) => i.file).join(', ')}）`);
+        if (post.video) {
+          const bytes = fs.readFileSync(post.video.path);
+          log(`  上传视频 ${post.video.file}（${bytes.length} 字节）…`);
+          const job = uploadVideo({ session, bytes, name: path.basename(post.video.file), mime: post.video.mime, pds });
+          log(`  视频已接收，正在转码（job ${job.jobId}）`);
+          const done = waitForVideo({ session, jobId: job.jobId, pds, log });
+          videoBlob = done.blob;
+          log('  视频处理完成，已取得 blob');
+        }
       } catch (error) {
         log(`  ! ${slug}#${post.id}: ${error.message}`);
         results.push({ slug, id: post.id, published: false, reason: error.message });
         continue;
       }
-      const embed = imageEmbed(post.images, blobs);
+      // A video takes precedence over images: the two cannot coexist (checked when composing), so
+      // this is only about which embed to build when one of them is present.
+      const embed = post.video ? videoEmbed(post.video, videoBlob) : imageEmbed(post.images, blobs);
       const record = {
         $type: 'app.bsky.feed.post',
         text: post.text.text,
@@ -373,14 +678,23 @@ export function blueskyPublish({ root, config, slugs, identifier, password, pds 
         results.push({ slug, id: post.id, published: false, status });
         continue;
       }
-      const check = readBack(json.uri, { expectImages: post.images.length });
+      const check = readBack(json.uri, { expectImages: post.images.length, expectVideo: Boolean(post.video) });
       log(check.verified ? `  ✓ ${slug}#${post.id} 已发布并回读确认：${check.url}` : `  ! ${check.reason}`);
       if (check.verified && check.images !== check.imagesExpected) {
         log(`  ! 帖子发出去了，但回读到 ${check.images} 张图（应是 ${check.imagesExpected} 张）—— 图没有进 embed`);
       }
+      if (check.verified && check.video !== check.videoExpected) {
+        log(`  ! 帖子发出去了，但 embed 里${check.video ? '有' : '没有'}视频（应${check.videoExpected ? '有' : '没有'}）—— 视频没有进 embed`);
+      }
       // Recorded before the results are returned: a post that is out is out, even if the process
       // dies before it finishes reporting.
-      ledger[post.key] = { uri: json.uri, url: check.url ?? null, at: new Date().toISOString(), images: post.images.length };
+      ledger[post.key] = {
+        uri: json.uri,
+        url: check.url ?? null,
+        at: new Date().toISOString(),
+        images: post.images.length,
+        ...(post.video ? { video: post.video.file } : {}),
+      };
       writeLedger(root, ledger);
       results.push({ slug, id: post.id, published: true, uri: json.uri, ...check });
     }

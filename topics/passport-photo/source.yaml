@@ -89,6 +89,12 @@ platforms:
 
           Two Russian rows (3 × 4 and 35 × 45), each one carrying the sentence its numbers came from.
         images: [assets/demo.gif]
+      - id: demo-video
+        text: |
+          What cropping to a spec actually looks like: pick the row, drag the crown and chin onto the guide lines, export a printable 10 × 15 cm sheet.
+
+          The photo never leaves the browser.
+        video: assets/demo-vertical.mp4
   reddit:
     title: "I bound every number in a passport photo spec table to the sentence it came from — one conflicting figure stayed in with the reason it lost"
     hook: "Russian 3×4 and 35×45 formats as data rows: size, head height band, headroom band, DPI, and the verbatim quotation each figure came from. One source claimed an 11–13 mm head height against three others; it is still in the table with why it was rejected, so the next person re-reading that page finds the decision instead of repeating it. One format with a single source is not shipped at all."

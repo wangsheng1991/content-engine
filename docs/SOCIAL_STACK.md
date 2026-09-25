@@ -223,6 +223,48 @@ content publish --devto <slug> --dry-run    # 只打印标题/标签/canonical�
   （`3D vision` → `3dvision`）；正文上限 10 万字符，超了提前报错而不是等接口拒绝
 - 端点核实：`POST https://dev.to/api/articles`（拿无效 key 打过去返回 **401**，说明路径与鉴权头 `api-key` 是对的，不是 404）
 
+### 8.3 Bluesky 视频：它走的不是图片那条路（2026-09-25 实测）
+
+图片走账号自己的 PDS 的 `com.atproto.repo.uploadBlob`，视频不走 —— 它先发给 `app.bsky.video`，
+转码完再作为 blob 写回 PDS。所以文案里加一行就够，**接口那边全是坑**：
+
+```yaml
+platforms:
+  bluesky:
+    posts:
+      - id: demo-video
+        text: |
+          文案，链接会自动补在末尾
+        video: assets/demo-vertical.mp4   # mp4，≤ 300 MB，alt 从 media: 里取
+```
+
+```
+content publish --bluesky <slug>            # 上传 → 轮询转码 → 建 embed → 回读核对 embed 类型
+content publish --bluesky <slug> --dry-run  # 打印 file / mime / 字节 / 画幅，不联系网络
+```
+
+一条帖子只有一个 embed，所以**图片和视频不能同时出现在一条里**，组合了就提前报错。
+
+三个字段没有一个能猜出来，全都是服务端自己说的（原话抄在这里，下次 401 直接对）：
+
+| 服务端原话 | 意思 |
+|---|---|
+| `invalid token audience "did:web:video.bsky.app", should be the user's PDS DID "did:web:discina.us-west.host.bsky.network"` | 授权 token 的 `aud` **不是视频服务自己**，而是账号所在的 PDS 的 DID |
+| `invalid token lexicon method "app.bsky.video.uploadVideo", should be com.atproto.repo.uploadBlob` | `lxm` 也不是被调的方法名，而是 `com.atproto.repo.uploadBlob` —— 因为视频最终是写到 PDS 上的 blob |
+| `missing name or did` | 上传 URL 必须带 `?name=<文件名>`（lexicon 里根本没写这个参数） |
+
+PDS 的 DID 从登录响应的 `didDoc` 里取 `#atproto_pds` 端点，再问一次
+`com.atproto.server.describeServer` 拿 `did` —— bsky.social 自己的 `describeServer` 返回的是
+`did:web:bsky.social`（入口层），**不是**账号真正所在的 PDS，用它会被拒。
+
+最后一道门在账号上：**邮箱没确认就不收视频**，服务端返回 `unconfirmed_email`。
+这一条在本地就直接拦下（文件都还没读），不会先传 300 MB 再被拒。
+`com.atproto.server.getSession` 的 `emailConfirmed` 就是这个状态。
+
+`app.bsky.embed.video` 要的是 **画幅比例**（`{width, height}` 小整数），不是像素尺寸 ——
+1080 × 1440 写成 `3:4`，`aspectRatioOf()` 用 gcd 约分；给了像素尺寸会得到一个形状不对但不报错的播放器。
+比例由 `ffprobe` 读，读不到就不写这个字段（不致命）。
+
 ---
 
 ## 9. 自托管的真实代价（对 §0 第 2 条的重要修正）
@@ -249,8 +291,9 @@ Postiz Cloud 帮你做完这些事，代价是钱和数据托管。
 
 | 事项 | 状态 |
 |---|---|
-| Bluesky 发布 | ✅ **已通**，见 §8 |
-| **Dev.to 长文发布** | ✅ **已通**（账号 `dlss` 上已有 2 篇已发布）。遗留：只能 `POST` 不能更新 —— 选型结论见 `docs/ops-system/LANDSCAPE.md` |
+| Bluesky 发布（文字 + 图） | ✅ **已通**，见 §8 |
+| **Bluesky 视频发布** | ⏳ **代码已通，卡在账号邮箱没确认**（`unconfirmed_email`）—— 见 §8.3。确认后重跑即可 |
+| **Dev.to 长文发布** | ✅ **已通**（账号 `dlss` 上已有 4 篇已发布）。遗留：只能 `POST` 不能更新 —— 选型结论见 `docs/ops-system/LANDSCAPE.md` |
 | Hashnode / Medium（同类，markdown、无开发者应用） | ⏳ 待办 —— Dev.to 跑通后再照搬 |
 | Postiz 跑起来（docker）+ 公网回调 + 连账号 | ⏳ 待办，见 §5 坑 ① |
 | X / Instagram / TikTok / YouTube / Pinterest | ⏳ 待办 —— 每个都要先注册开发者应用，X 的 API 还要付费 |

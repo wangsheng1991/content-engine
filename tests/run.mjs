@@ -57,19 +57,26 @@ import { hfArtifacts, resolveHfTarget } from '../src/hf.mjs';
 import {
   MAX_IMAGES,
   MAX_IMAGE_BYTES,
+  MAX_VIDEO_BYTES,
   POST_LIMIT,
+  VIDEO_LXM,
+  VIDEO_SERVICE,
+  aspectRatioOf,
   blueskyPosts,
   blueskyPublish,
   composeImages,
   composePost,
+  composeVideo,
   createSession,
   graphemeLength,
   imageEmbed,
   linkFacets,
+  pdsDidOf,
   postKey,
   readLedger,
   topicLink,
   uploadBlob,
+  videoEmbed,
 } from '../src/bluesky.mjs';
 import {
   BODY_MAX,
@@ -1025,6 +1032,165 @@ test('bluesky: a dry run names the images and their alt text, and contacts nothi
   assert.ok(lines.some((l) => l.includes('1 张图')), 'the dry run must count the images');
   assert.ok(lines.some((l) => l.includes('A screenshot of the tool.')), 'and print the alt text');
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+// --- bluesky video ------------------------------------------------------------
+// Video goes through a different service than images do, and the failure that matters is the quiet
+// one: a record built before the transcode job handed back its blob is accepted and then plays as
+// nothing. So the shape of the embed and the rules around the file are pinned here.
+
+/** A throwaway topic carrying a fake mp4 — nothing in this section is ever uploaded. */
+function blueskyVideoTopic({ source, files = { 'assets/demo.mp4': Buffer.from('fake mp4 bytes') } } = {}) {
+  return blueskyTopic({ source, files });
+}
+
+test('bluesky: a video ratio is reduced to the small integers the embed wants', () => {
+  assert.deepEqual(aspectRatioOf(1080, 1920), { width: 9, height: 16 });
+  assert.deepEqual(aspectRatioOf(1920, 1080), { width: 16, height: 9 });
+  assert.deepEqual(aspectRatioOf(1080, 1350), { width: 4, height: 5 });
+  // Beyond double digits the pair stops meaning anything to a player, so it collapses to a ratio.
+  const odd = aspectRatioOf(1000, 999);
+  assert.equal(odd.height, 1);
+  assert.equal(Math.abs(odd.width - 1000 / 999) < 0.001, true);
+  assert.equal(aspectRatioOf(0, 0), undefined, 'a nonsense size must not produce a nonsense ratio');
+});
+
+test('bluesky: the video embed names the blob, and omits what it does not know', () => {
+  const blob = { $type: 'blob', ref: { $link: 'bafyvideo' } };
+  const embed = videoEmbed({ alt: 'A passport photo being cropped.', aspectRatio: { width: 3, height: 4 } }, blob);
+  assert.equal(embed.$type, 'app.bsky.embed.video');
+  assert.equal(embed.video.ref.$link, 'bafyvideo');
+  assert.equal(embed.alt, 'A passport photo being cropped.');
+  assert.deepEqual(embed.aspectRatio, { width: 3, height: 4 });
+  const bare = videoEmbed({ alt: 'x' }, blob);
+  assert.equal('aspectRatio' in bare, false, 'an unknown ratio must be absent, not guessed');
+});
+
+test('bluesky: a video takes its alt text from the media list, and one without it is refused', () => {
+  const described = blueskyVideoTopic({
+    source: [
+      'media:',
+      '  - file: assets/demo.mp4',
+      '    kind: video',
+      '    alt: "The spec table filling itself in."',
+      'platforms:',
+      '  bluesky:',
+      '    text: "hello"',
+      '    video: assets/demo.mp4',
+      '',
+    ].join('\n'),
+  });
+  const video = composeVideo(described.topic, { root: described.root });
+  assert.equal(video.file, 'assets/demo.mp4');
+  assert.equal(video.mime, 'video/mp4');
+  assert.equal(video.alt, 'The spec table filling itself in.');
+  assert.equal(video.bytes, Buffer.from('fake mp4 bytes').length);
+  fs.rmSync(described.root, { recursive: true, force: true });
+
+  const bare = blueskyVideoTopic({
+    source: ['platforms:', '  bluesky:', '    text: "hello"', '    video: assets/demo.mp4', ''].join('\n'),
+  });
+  assert.throws(() => composeVideo(bare.topic, { root: bare.root }), /没有 alt/);
+  fs.rmSync(bare.root, { recursive: true, force: true });
+});
+
+test('bluesky: a video over the limit, of the wrong format, or missing on disk is refused', () => {
+  const big = blueskyVideoTopic({
+    source: ['platforms:', '  bluesky:', '    video:', '      file: assets/demo.mp4', '      alt: "x"', ''].join('\n'),
+    files: { 'assets/demo.mp4': Buffer.alloc(MAX_VIDEO_BYTES + 1) },
+  });
+  assert.throws(() => composeVideo(big.topic, { root: big.root }), /超过 Bluesky 视频/);
+  fs.rmSync(big.root, { recursive: true, force: true });
+
+  const wrong = blueskyVideoTopic({
+    source: ['platforms:', '  bluesky:', '    video:', '      file: assets/demo.mov', '      alt: "x"', ''].join('\n'),
+    files: { 'assets/demo.mov': Buffer.from('x') },
+  });
+  assert.throws(() => composeVideo(wrong.topic, { root: wrong.root }), /视频只收 mp4/);
+  fs.rmSync(wrong.root, { recursive: true, force: true });
+
+  const absent = blueskyVideoTopic({
+    source: ['platforms:', '  bluesky:', '    video:', '      file: assets/nope.mp4', '      alt: "x"', ''].join('\n'),
+  });
+  assert.throws(() => composeVideo(absent.topic, { root: absent.root }), /找不到 assets\/nope\.mp4/);
+  fs.rmSync(absent.root, { recursive: true, force: true });
+
+  assert.equal(composeVideo({ slug: 'demo', source: { platforms: { bluesky: {} } } }, { root: '.' }), null,
+    'a post with no video must compose to nothing rather than an empty embed');
+});
+
+test('bluesky: one post cannot carry both images and a video, and the dry run says which', () => {
+  const both = blueskyVideoTopic({
+    source: [
+      'media:',
+      '  - file: assets/demo.mp4',
+      '    alt: "The video."',
+      '  - file: assets/demo.png',
+      '    alt: "The picture."',
+      'platforms:',
+      '  bluesky:',
+      '    text: "hello"',
+      '    images: [assets/demo.png]',
+      '    video: assets/demo.mp4',
+      '',
+    ].join('\n'),
+    files: { 'assets/demo.mp4': Buffer.from('fake mp4 bytes'), 'assets/demo.png': Buffer.from([0x89, 0x50, 0x4e, 0x47]) },
+  });
+  assert.throws(
+    () => blueskyPublish({ root: both.root, config: BS_CONFIG, slugs: ['demo'], dryRun: true, log: () => {} }),
+    /二选一/
+  );
+  fs.rmSync(both.root, { recursive: true, force: true });
+
+  const only = blueskyVideoTopic({
+    source: [
+      'media:',
+      '  - file: assets/demo.mp4',
+      '    alt: "The spec table filling itself in."',
+      'platforms:',
+      '  bluesky:',
+      '    text: "hello"',
+      '    video: assets/demo.mp4',
+      '',
+    ].join('\n'),
+  });
+  const lines = [];
+  const result = blueskyPublish({ root: only.root, config: BS_CONFIG, slugs: ['demo'], dryRun: true, log: (l) => lines.push(String(l)) });
+  assert.equal(result.ok, true);
+  assert.ok(lines.some((l) => l.includes('1 段视频')), 'the dry run must count the video');
+  assert.ok(lines.some((l) => l.includes('[视频] assets/demo.mp4')), 'and name the file');
+  assert.ok(lines.some((l) => l.includes('The spec table filling itself in.')), 'and print the alt text');
+  fs.rmSync(only.root, { recursive: true, force: true });
+});
+
+test('bluesky: a per-post video is carried, and the service it goes to is the video host', () => {
+  const posts = blueskyPosts({
+    slug: 'demo',
+    source: {
+      platforms: {
+        bluesky: {
+          posts: [
+            { id: 'text-only', text: 'just words' },
+            { id: 'demo-video', text: 'watch this', video: { file: 'assets/demo.mp4', alt: 'x' } },
+          ],
+        },
+      },
+    },
+  });
+  assert.deepEqual(posts.map((p) => p.video ?? null), [null, { file: 'assets/demo.mp4', alt: 'x' }]);
+  assert.equal(VIDEO_SERVICE.did, 'did:web:video.bsky.app');
+  assert.equal(VIDEO_SERVICE.url, 'https://video.bsky.app');
+});
+
+test('bluesky: the video token is minted for the account\'s own PDS, under the write lexeme', () => {
+  // Both values were dictated by the video service itself, and it rejects everything else, so they
+  // are pinned here rather than left to be rediscovered by the next person who gets a 401.
+  assert.equal(VIDEO_LXM, 'com.atproto.repo.uploadBlob');
+  const known = { did: 'did:plc:abc', pdsDid: 'did:web:pds.example', pdsEndpoint: 'https://pds.example' };
+  assert.equal(pdsDidOf({ session: known }), 'did:web:pds.example');
+  assert.throws(() => pdsDidOf({ session: {} }), /没有账号 DID/);
+  // An unresolvable DID is refused with an explanation instead of a request to nowhere.
+  assert.throws(() => pdsDidOf({ session: { did: 'did:unknown:x' } }), /查不到/);
 });
 
 // --- bluesky: several posts, and the record of what already went out --------------

@@ -98,6 +98,9 @@ const HELP = `content — GitHub-first content engine
   就能发的，凭证放 vault（BLUESKY_HANDLE / BLUESKY_APP_PASSWORD），发布后回读公开接口确认。
   带图发就把文件写进 source.yaml 的 platforms.bluesky.images（最多 4 张、每张 ≤ 1 MB），
   alt 文本写在主题自己的 media: 列表里 —— 没有 alt 的图会被拒绝，不会被静默发出去。
+  视频同理，写 video: assets/x.mp4（mp4、≤ 300 MB）：先传给视频服务转码，转完再建 embed，
+  回读时核对 embed 就是视频那种。一条帖子只有一个 embed，图片和视频不能同时出现。
+  视频还要账号邮箱已确认（Bluesky 的规矩），没确认时在本地就拦下，不会白传一遍。
   一条纯文字的帖子在这些平台上没人点，所以 content images 之外还该有 media:（视频/动图）。
   一个主题想发多条就写成 platforms.bluesky.posts（每条一个 id）；发过的记在 data/published/
   bluesky.json 里，重跑只会跳过，不会重复发 —— 想再发一次加 --force。发一次删不掉，
