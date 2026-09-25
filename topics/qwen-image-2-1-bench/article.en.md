@@ -4,6 +4,8 @@ That produced an awkward result: asked to draw "a photo of two clocks" using Gen
 
 The point of this article is that **the 4/7 was not a capability ceiling — it was the way we were feeding the model** — and that chasing this down explains why the advertised numbers and hands-on experience disagree.
 
+![The live report page: the headline, the four summary numbers and the nine-domain table](assets/report.gif)
+
 ## The short version
 
 Most of the gap is about *protocol*, not about the model.
