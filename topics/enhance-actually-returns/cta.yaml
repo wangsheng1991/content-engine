@@ -1,0 +1,15 @@
+headline: "同一张图，同一个尺寸，只是被重画了一遍"
+body: |
+  「增强」这个词最容易被误解成「把小图拉成大图」。这一步其实不是 —— 页面上跑的是重绘：
+  你给它一张图，它还你同一机位、重新渲染过的版本，长边上限 1536 像素，倍率 2/4。
+  自己的截图可以直接试：注册送额度，每个任务扣 1 额度。
+label: "上传自己的截图，免费额度直接跑一张"
+url: https://www.dlss5nvidia.com/visual-enhancer
+en:
+  headline: "Same picture, same size, drawn again"
+  body: |
+    "Enhance" is usually read as "make the small one big". This step is not that: it re-renders the
+    frame you give it — same camera, same dimensions, with a 1536-pixel longest-edge cap and 2/4
+    target factors. Your own screenshot takes one credit, and new accounts start with free credits.
+  label: "Enhance your own screenshot — free credits on signup"
+  url: https://www.dlss5nvidia.com/visual-enhancer

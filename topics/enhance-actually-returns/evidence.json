@@ -1,0 +1,61 @@
+{
+  "claims": [
+    {
+      "id": "public-example-needs-no-account",
+      "claim": "这个公开示例不需要账号、不花额度、不上传任何东西：它向站点的公开目录要一份已经缓存的示例，就是访客在页面上点「运行」拿到的那一份。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/dlss5-visual-enhancer/main/README.md",
+      "quote": "No account, no credits, no uploads.",
+      "verified": true
+    },
+    {
+      "id": "your-own-file-never-uploaded-by-this-script",
+      "claim": "这个脚本不会把你自己的图片发到任何地方；处理自己的图是站点上另一条需要登录的流程。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/dlss5-visual-enhancer/main/README.md",
+      "quote": "script never sends a file of yours anywhere.",
+      "verified": true
+    },
+    {
+      "id": "not-nvidia-dlss-runtime",
+      "claim": "它既不是 NVIDIA DLSS 5，也不是 DLSS 运行时，不安装、不替换任何 NVIDIA 文件。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/dlss5-visual-enhancer/main/README.md",
+      "quote": "Not NVIDIA DLSS 5, not a DLSS runtime, not a DLL, not a game integration.",
+      "verified": true
+    },
+    {
+      "id": "sample1-same-frame-same-size",
+      "claim": "sample1 这一对是同一机位、同尺寸：1200×768 的 JPEG 进，1200×768 的 WebP 出，输入 154,319 B、输出 134,222 B。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/dlss5-visual-enhancer/main/README.md",
+      "quote": "1200×768 JPEG · 154,319 B",
+      "verified": true
+    },
+    {
+      "id": "sample2-changes-geometry",
+      "claim": "样本之间不能一概而论：sample2 是 1670×1152 进、1024×1024 出，几何变了，所以它那对的滑块不是像素对齐的。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/dlss5-visual-enhancer/main/README.md",
+      "quote": "no — the output is a different geometry",
+      "verified": true
+    },
+    {
+      "id": "our-run-reproduces-documented-hash",
+      "claim": "我在本机跑同一个示例，得到的输入文件哈希以 19d965fed4699633 开头，与仓库里记录的那次运行一致，说明这一对文件是稳定的、可复现的。",
+      "source": "https://raw.githubusercontent.com/wangsheng1991/dlss5-visual-enhancer/main/README.md",
+      "quote": "sha256:19d965fed4699633",
+      "verified": true
+    },
+    {
+      "id": "output-longest-edge-capped",
+      "claim": "官方页面写明：输出最长边上限 1536 像素，目标倍率 2 / 4，需要时会降低倍率来适配上限。",
+      "source": "https://www.dlss5nvidia.com/visual-enhancer",
+      "quote": "The longest output edge is capped at 1536 pixels. Target factors are 2 / 4; the requested scale is reduced when needed to fit that cap.",
+      "verified": true
+    },
+    {
+      "id": "enhance-is-not-super-resolution",
+      "claim": "这里的「增强」不是逐像素超分：站点自己把图像质量增强定位成重绘流程的入口，而不是无限免费处理。",
+      "source": "https://www.dlss5nvidia.com/visual-enhancer",
+      "quote": "Image-quality enhancement is an entry point",
+      "verified": true
+    }
+  ],
+  "checked_at": "2026-10-30"
+}

@@ -1,0 +1,51 @@
+slug: enhance-actually-returns
+title: "浏览器里的「AI 增强」到底返回什么：我把公开示例拆开量了一遍"
+subtitle: "三次 HTTP 请求、本机零推理、不花额度，拿到两张可以核对的图：154,319 B 的 JPEG 进，134,222 B 的 WebP 出，边长都是 1200×768。哈希贴在下面，你自己验。"
+title_en: "What a browser 'AI enhance' actually returns — measured, with hashes"
+subtitle_en: "Three HTTP requests, no inference on my machine, no credit spent, two files you can verify. A 154,319 B JPEG goes in, a 134,222 B WebP comes out, both 1200×768 — and the SHA-256 is printed below."
+kind: practice
+date: 2026-10-30
+updated: 2026-10-30
+status: published
+summary: |
+  「AI 增强」这四个字底下藏着好几件完全不同的事：超分、去噪、重绘、换个构图。为了说清其中一种到底返回什么，
+  我把它公开的缓存示例从命令行拉了一遍：本机没有任何推理，三次 HTTP 请求，不花额度，拿到输入图、输出图和两者的哈希。
+  结果很朴素 —— sample1 进出都是 1200×768，同一机位，JPEG 154,319 B 变成 WebP 134,222 B。也就是说这一步是
+  同尺寸重绘，不是把 720p 拉成 4K 的超分。官方页面自己写着输出长边上限 1536 像素、目标倍率 2/4，
+  另一个样本（sample2）进出几何还不一样。把这些摊开，比写「效果惊艳」有用。
+summary_en: |
+  "AI enhance" covers at least four different jobs: super-resolution, denoising, re-rendering, and
+  re-composing. To pin down which one a browser tool actually performs, I pulled its public cached
+  example from the command line: no inference on my machine, three HTTP requests, no credit spent,
+  and I kept the input file, the output file and the SHA-256 of both. The result is unglamorous —
+  sample1 is 1200×768 in and 1200×768 out, same camera, a 154,319 B JPEG becoming a 134,222 B WebP.
+  This step re-renders at the size it was given; it is not upscaling 720p into 4K. The tool's own page
+  states a 1536-pixel longest-edge cap and 2/4 target factors, and a second sample changes geometry
+  entirely. Publishing that is more useful than the word "stunning".
+tags: [图像增强, 重绘, 可核对, 开发者工具, 图像管线]
+hashtags: [图像增强, AI重绘, 开发者工具, 图像处理, 实测]
+canonical:
+  site: https://www.dlss5nvidia.com/visual-enhancer
+  example_repo: https://github.com/wangsheng1991/dlss5-visual-enhancer
+key_facts:
+  - label: 这次跑的样本
+    value: "sample1（厨房场景渲染图），命令行公开缓存示例"
+  - label: 请求数与本机推理
+    value: "3 次 HTTP（目录 / 输入 / 输出）；本机不跑任何模型，不扣额度"
+  - label: 输入
+    value: "input.jpg 154,319 B、1200×768"
+  - label: 输出
+    value: "output.webp 134,222 B、1200×768"
+  - label: 两边的 SHA-256
+    value: "输入 19d965fe…c2fc28a；输出 229b802a…c89e708（全文见正文）"
+  - label: 官方写明的上限
+    value: "输出最长边 1536 像素，目标倍率 2/4，超出时降低倍率去适配"
+media:
+  - file: assets/before-after.gif
+    kind: image
+    caption: "600 KB 动图：同一帧的输入与输出，滑块在两边来回切"
+    caption_en: "600 KB: the same frame, input and output, with the slider moving between them"
+    alt: "Animated comparison of a kitchen render: a slider sweeps between the source JPEG and the re-rendered WebP of the same 1200x768 frame."
+platforms:
+  devto:
+    tags: [ai, imageprocessing, webdev, tooling]

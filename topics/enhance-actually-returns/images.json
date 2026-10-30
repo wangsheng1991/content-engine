@@ -1,0 +1,26 @@
+{
+  "topic": "enhance-actually-returns",
+  "generated_at": "2026-10-30T04:18:45Z",
+  "images": [
+    {
+      "id": "cover",
+      "file": "assets/og.png",
+      "kind": "cover",
+      "backend": "card",
+      "model": "html+chrome",
+      "size": "1200×630",
+      "bytes": 82892,
+      "sha256": "dfa8dd1f1eac1b0d"
+    },
+    {
+      "id": "cover-en",
+      "file": "assets/og.en.png",
+      "kind": "cover",
+      "backend": "card",
+      "model": "html+chrome",
+      "size": "1200×630",
+      "bytes": 41197,
+      "sha256": "65f819e4c1a0e312"
+    }
+  ]
+}
