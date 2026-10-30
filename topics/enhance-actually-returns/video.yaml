@@ -1,0 +1,37 @@
+title: "浏览器里的「AI 增强」到底返回什么：把两个文件摊开看"
+target_seconds: 90
+scenes:
+  - id: hook
+    seconds: 12
+    onscreen: "1200×768 进，1200×768 出"
+    visual: "同一个厨房画面左右分屏：左边标 input.jpg，右边标 output.webp，尺寸标签同时压在两边。"
+    voiceover: |
+      「AI 增强」听起来像把小图变大。我量了一次，进出尺寸一模一样，
+      变的只是这张图被重新画了一遍。
+  - id: files
+    seconds: 20
+    onscreen: "154,319 B → 134,222 B · 两个 SHA-256"
+    visual: "终端窗口逐行输出：文件名、字节数、尺寸、哈希；两行哈希用等宽字体高亮。"
+    voiceover: |
+      两次请求拿到两个文件：154,319 字节的 JPEG 进，134,222 字节的 WebP 出，
+      边长都是 1200 乘 768，两边的哈希我都贴着，你可以自己复核。
+  - id: cap
+    seconds: 18
+    onscreen: "长边上限 1536 像素，倍率 2 / 4"
+    visual: "官方页面里那段说明被框出来：「The longest output edge is capped at 1536 pixels」。"
+    voiceover: |
+      官方页面自己也写死了上限：最长边 1536 像素，目标倍率 2 或 4，
+      超出就降低倍率去适配。所以这里不存在小图变 4K。
+  - id: caveat
+    seconds: 22
+    onscreen: "换构图可以美化任何对比"
+    visual: "两份样本并排：sample1 进出同尺寸，sample2 从 1670×1152 变成 1024×1024，第二份标红。"
+    voiceover: |
+      但样本对不能一概而论：同一个仓库里的另一份示例，进出几何就不一样了。
+      判断一个增强器，先看它给的那对图有没有保住机位。
+  - id: cta
+    seconds: 18
+    onscreen: "跑自己的截图，1 额度一次"
+    visual: "站点 /visual-enhancer 页面上传区，选一张图，进度条走完出现前后对比滑块。"
+    voiceover: |
+      想跑自己的截图就走站点上的登录流程，每个任务 1 个额度，新账号送额度。
